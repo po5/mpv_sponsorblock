@@ -91,7 +91,6 @@ function skip_ads(name, pos)
 end
 
 function update()
-    if not options.local_database or not options.auto_update then return end
     mp.command_native_async({name = "subprocess", playback_only = false, args = {
         "python",
         sponsorblock,
@@ -118,6 +117,7 @@ function file_loaded()
     end
     if initialized then return end
     mp.observe_property("time-pos", "native", skip_ads)
+    if not options.local_database or (not options.auto_update and file_exists(database_file)) then return end
     update()
 end
 
