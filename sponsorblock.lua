@@ -14,7 +14,10 @@ local options = {
     local_database = true,
 
     -- Update database on first run, does nothing if local_database is false
-    auto_update = true
+    auto_update = true,
+
+    -- User ID used to submit sponsored segments, leave blank for random
+    user_id = ""
 }
 
 mp.options = require "mp.options"
@@ -28,6 +31,7 @@ local youtube_id = nil
 local ranges = {}
 local path = nil
 local init = false
+local segment = {a = 0, b = 0, progress = 0}
 
 function file_exists(name)
     local f=io.open(name,"r")
@@ -77,6 +81,7 @@ end
 function file_loaded()
     local initialized = init
     ranges = {}
+    segment = {a = 0, b = 0, progress = 0}
     local video_path = mp.get_property("path")
     local youtube_id1 = string.match(video_path, "https?://youtu%.be/([%a%d%-_]+).*")
     local youtube_id2 = string.match(video_path, "https?://w?w?w?%.?youtube%.com/v/([%a%d%-_]+).*")
@@ -102,4 +107,67 @@ function file_loaded()
     end
 end
 
+function set_segment()
+    if not youtube_id then return end
+    local pos = mp.get_property_number("time-pos")
+    if pos == nil then return end
+    if segment.progress > 1 then
+        segment.progress = segment.progress - 2
+    end
+    if segment.progress == 1 then
+        segment.progress = 0
+        segment.b = pos
+        mp.osd_message("[sponsorblock] segment boundary B set, press again for boundary A", 3)
+    else
+        segment.progress = 1
+        segment.a = pos
+        mp.osd_message("[sponsorblock] segment boundary A set, press again for boundary B", 3)
+    end
+end
+
+function submit_segment()
+    if not youtube_id then return end
+    local start_time = math.min(segment.a, segment.b)
+    local end_time = math.max(segment.a, segment.b)
+    if end_time - start_time == 0 or end_time == 0 then
+        mp.osd_message("[sponsorblock] empty segment, not submitting")
+    elseif segment.progress <= 1 then
+        mp.osd_message(string.format("[sponsorblock] press Shift+O again to confirm: %.2d:%.2d:%.2d to %.2d:%.2d:%.2d", start_time/(60*60), start_time/60%60, start_time%60, end_time/(60*60), end_time/60%60, end_time%60), 5)
+        segment.progress = segment.progress + 2
+    else
+        mp.osd_message("[sponsorblock] submitting segment...", 30)
+        local submit = mp.command_native{name = "subprocess", capture_stdout = true, playback_only = false, args = {
+            "python",
+            sponsorblock,
+            "submit",
+            database_file,
+            options.server_address,
+            youtube_id,
+            tostring(start_time),
+            tostring(end_time),
+            options.user_id
+        }}
+        if string.match(submit.stdout, "success") then
+            segment = {a = 0, b = 0, progress = 0}
+            mp.osd_message("[sponsorblock] segment submitted")
+        elseif string.match(submit.stdout, "error") then
+            mp.osd_message("[sponsorblock] segment submission failed, server may be down. try again", 5)
+        elseif string.match(submit.stdout, "502") then
+            mp.osd_message("[sponsorblock] segment submission failed, server is down. try again", 5)
+        elseif string.match(submit.stdout, "400") then
+            mp.osd_message("[sponsorblock] segment submission failed, impossible inputs", 5)
+            segment = {a = 0, b = 0, progress = 0}
+        elseif string.match(submit.stdout, "429") then
+            mp.osd_message("[sponsorblock] segment submission failed, rate limited. try again", 5)
+        elseif string.match(submit.stdout, "409") then
+            mp.osd_message("[sponsorblock] segment already submitted", 3)
+            segment = {a = 0, b = 0, progress = 0}
+        else
+            mp.osd_message("[sponsorblock] segment submission failed", 5)
+        end
+    end
+end
+
 mp.register_event("file-loaded", file_loaded)
+mp.add_key_binding("o", "sponsorblock_set_segment", set_segment)
+mp.add_key_binding("O", "sponsorblock_submit_segment", submit_segment)

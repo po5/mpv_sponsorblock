@@ -1,5 +1,7 @@
 import urllib.request
 import sqlite3
+import random
+import string
 import json
 import sys
 import os
@@ -7,13 +9,13 @@ import os
 if sys.argv[1] == "ranges" and not sys.argv[2]:
     times = []
     try:
-        response = urllib.request.urlopen(f"{sys.argv[3]}/api/getVideoSponsorTimes?videoID=" + sys.argv[4])
+        response = urllib.request.urlopen(f"{sys.argv[3]}/api/getVideoSponsorTimes?videoID={sys.argv[4]}")
         data = json.load(response)
         for time in data["sponsorTimes"]:
             times.append(f"{time[0]},{time[1]}")
         print(":".join(times))
     except:
-        print("API request failed", file=sys.stderr)
+        print("could not get sponsor times from API", file=sys.stderr)
 elif sys.argv[1] == "ranges":
     conn = sqlite3.connect(sys.argv[2])
     conn.row_factory = sqlite3.Row
@@ -28,8 +30,10 @@ elif sys.argv[1] == "ranges":
         for sponsor_b in sponsors:
             if sponsor_a["startTime"] > sponsor_b["startTime"] and sponsor_a["startTime"] < sponsor_b["endTime"]:
                 similar.append([sponsor_a, sponsor_b])
-                best.remove(sponsor_a)
-                best.remove(sponsor_b)
+                if sponsor_a in best:
+                    best.remove(sponsor_a)
+                if sponsor_b in best:
+                    best.remove(sponsor_b)
     for sponsors_a in similar:
         if sponsors_a in dealtwith:
             continue
@@ -53,3 +57,11 @@ elif sys.argv[1] == "update":
         print("database update failed, connection reset", file=sys.stderr)
     except urllib.error.URLError:
         print("database update failed", file=sys.stderr)
+elif sys.argv[1] == "submit":
+    try:
+        response = urllib.request.urlopen(f"{sys.argv[3]}/api/postVideoSponsorTimes?videoID={sys.argv[4]}&startTime={sys.argv[5]}&endTime={sys.argv[6]}&userID={sys.argv[7] or ''.join(random.choices(string.ascii_letters + string.digits, k=36))}")
+        print("success")
+    except urllib.error.HTTPError as e:
+        print(e.code)
+    except:
+        print("error")
