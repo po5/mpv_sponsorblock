@@ -7,7 +7,7 @@ import os
 if sys.argv[1] == "ranges" and not sys.argv[2]:
     times = []
     try:
-        response = urllib.request.urlopen("https://sponsor.ajay.app/api/getVideoSponsorTimes?videoID=" + sys.argv[3])
+        response = urllib.request.urlopen(f"{sys.argv[3]}/api/getVideoSponsorTimes?videoID=" + sys.argv[4])
         data = json.load(response)
         for time in data["sponsorTimes"]:
             times.append(f"{time[0]},{time[1]}")
@@ -18,7 +18,7 @@ elif sys.argv[1] == "ranges":
     conn = sqlite3.connect(sys.argv[2])
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    c.execute("SELECT startTime, endTime, votes FROM sponsorTimes WHERE videoID = ? AND shadowHidden = 0 AND votes > -1", (sys.argv[3],))
+    c.execute("SELECT startTime, endTime, votes FROM sponsorTimes WHERE videoID = ? AND shadowHidden = 0 AND votes > -1", (sys.argv[4],))
     times = []
     sponsors = c.fetchall()
     best = sponsors
@@ -45,7 +45,7 @@ elif sys.argv[1] == "ranges":
     print(":".join(times))
 elif sys.argv[1] == "update":
     try:
-        urllib.request.urlretrieve("https://sponsor.ajay.app/database.db", sys.argv[2] + ".tmp")
+        urllib.request.urlretrieve(f"{sys.argv[3]}/database.db", sys.argv[2] + ".tmp")
         os.replace(sys.argv[2] + ".tmp", sys.argv[2])
     except PermissionError:
         print("database update failed, file currently in use", file=sys.stderr)

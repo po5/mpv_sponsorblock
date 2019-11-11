@@ -4,6 +4,8 @@
 -- using data from https://github.com/ajayyy/SponsorBlock
 
 local options = {
+    server_address = "https://sponsor.ajay.app",
+
     -- If true, sponsored segments will only be skipped once
     skip_once = true,
 
@@ -38,6 +40,7 @@ function getranges(success, result, err)
         sponsorblock,
         "ranges",
         database_file,
+        options.server_address,
         youtube_id
     }}
     if not string.match(sponsors.stdout, "^%s*(.*%S)") then return end
@@ -93,7 +96,8 @@ function file_loaded()
             "python",
             sponsorblock,
             "update",
-            database_file
+            database_file,
+            options.server_address
         }}, getranges)
     end
 end
