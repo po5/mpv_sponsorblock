@@ -32,13 +32,25 @@ local ranges = {}
 local path = nil
 local init = false
 local segment = {a = 0, b = 0, progress = 0}
+local retrying = false
 
 function file_exists(name)
-    local f=io.open(name,"r")
-    if f~=nil then io.close(f) return true else return false end
+    local f = io.open(name,"r")
+    if f ~= nil then io.close(f) return true else return false end
 end
 
-function getranges(success, result, err)
+function getranges(_, exists)
+    if exists ~= true and not file_exists(database_file) then
+        if not retrying then
+            mp.osd_message("[sponsorblock] database update failed, retrying...")
+            retrying = true
+        end
+        return update()
+    end
+    if retrying then
+        mp.osd_message("[sponsorblock] database update succeeded")
+        retrying = false
+    end
     local sponsors = mp.command_native{name = "subprocess", capture_stdout = true, playback_only = false, args = {
         "python",
         sponsorblock,
@@ -78,6 +90,17 @@ function skip_ads(name, pos)
     end
 end
 
+function update()
+    if not options.local_database or not options.auto_update then return end
+    mp.command_native_async({name = "subprocess", playback_only = false, args = {
+        "python",
+        sponsorblock,
+        "update",
+        database_file,
+        options.server_address
+    }}, getranges)
+end
+
 function file_loaded()
     local initialized = init
     ranges = {}
@@ -91,20 +114,11 @@ function file_loaded()
     if not youtube_id then return end
     init = true
     if not options.local_database or file_exists(database_file) then
-        getranges()
+        getranges(true, true)
     end
     if initialized then return end
     mp.observe_property("time-pos", "native", skip_ads)
-    if not options.local_database or not options.auto_update then return end
-    if options.auto_update then
-        mp.command_native_async({name = "subprocess", playback_only = false, args = {
-            "python",
-            sponsorblock,
-            "update",
-            database_file,
-            options.server_address
-        }}, getranges)
-    end
+    update()
 end
 
 function set_segment()
