@@ -11,7 +11,7 @@ if sys.argv[1] == "ranges" and not sys.argv[2]:
     try:
         response = urllib.request.urlopen(f"{sys.argv[3]}/api/getVideoSponsorTimes?videoID={sys.argv[4]}")
         data = json.load(response)
-        for i, time in data["sponsorTimes"]:
+        for i, time in enumerate(data["sponsorTimes"]):
             times.append(f"{time[0]},{time[1]},{data['UUIDs'][i]}")
         print(":".join(times))
     except urllib.error.HTTPError as e:
