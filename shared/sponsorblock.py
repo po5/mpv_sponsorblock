@@ -14,8 +14,11 @@ if sys.argv[1] == "ranges" and not sys.argv[2]:
         for time in data["sponsorTimes"]:
             times.append(f"{time[0]},{time[1]}")
         print(":".join(times))
-    except:
-        print("could not get sponsor times from API", file=sys.stderr)
+    except urllib.error.HTTPError as e:
+        if e.code == 404:
+            print("")
+        else:
+            print("error")
 elif sys.argv[1] == "ranges":
     conn = sqlite3.connect(sys.argv[2])
     conn.row_factory = sqlite3.Row

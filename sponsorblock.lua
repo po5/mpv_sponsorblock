@@ -60,6 +60,7 @@ function getranges(_, exists)
         youtube_id
     }}
     if not string.match(sponsors.stdout, "^%s*(.*%S)") then return end
+    if string.match(sponsors.stdout, "error") then return getranges(true, true) end
     local current_path = mp.get_property("path")
     local current_ranges = {}
     if path == current_path then
