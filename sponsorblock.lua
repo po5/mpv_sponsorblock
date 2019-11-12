@@ -17,7 +17,13 @@ local options = {
     auto_update = true,
 
     -- User ID used to submit sponsored segments, leave blank for random
-    user_id = ""
+    user_id = "",
+
+    -- Tell the server when a skip happens
+    report_views = true,
+
+    -- Auto upvote skipped sponsors
+    auto_upvote = true
 }
 
 mp.options = require "mp.options"
@@ -29,10 +35,10 @@ local sponsorblock = utils.join_path(scripts_dir, "shared/sponsorblock.py")
 local database_file = options.local_database and utils.join_path(scripts_dir, "shared/sponsorblock.db") or ""
 local youtube_id = nil
 local ranges = {}
-local path = nil
 local init = false
 local segment = {a = 0, b = 0, progress = 0}
 local retrying = false
+local last_skip = {uuid = "", dir = nil}
 
 function file_exists(name)
     local f = io.open(name,"r")
@@ -61,34 +67,62 @@ function getranges(_, exists)
     }}
     if not string.match(sponsors.stdout, "^%s*(.*%S)") then return end
     if string.match(sponsors.stdout, "error") then return getranges(true, true) end
-    local current_path = mp.get_property("path")
-    local current_ranges = {}
-    if path == current_path then
-        for _, t in ipairs(ranges) do
-            current_ranges[tostring(t.start_time) .. "-" .. tostring(t.end_time)] = t.skipped
-        end
-    end
-    path = current_path
     for t in string.gmatch(sponsors.stdout, "[^:]+") do
-        start_time = tonumber(string.match(t, '[^,]+'))
-        end_time = tonumber(string.match(t, '[^,]+$'))
-        table.insert(ranges, {
-            start_time = start_time,
-            end_time = end_time,
-            skipped = current_ranges[tostring(start_time) .. "-" .. tostring(end_time)]
-        })
+        uuid = string.match(t, '[^,]+$')
+        if not ranges[uuid] then
+            ranges[uuid] = {
+                start_time = tonumber(string.match(t, '[^,]+')),
+                end_time = tonumber(string.sub(string.match(t, ',[^,]+'), 2)),
+                skipped = false
+            }
+        end
     end
 end
 
 function skip_ads(name, pos)
     if pos == nil then return end
-    for _, t in ipairs(ranges) do
+    for uuid, t in pairs(ranges) do
         if (not options.skip_once or not t.skipped) and t.start_time <= pos and t.end_time > pos then
             mp.set_property("time-pos", t.end_time)
             mp.osd_message("[sponsorblock] sponsor skipped")
             t.skipped = true
+            last_skip = {uuid = uuid, dir = nil}
+            if options.report_views or options.auto_upvote then
+                mp.command_native_async({name = "subprocess", playback_only = false, args = {
+                    "python",
+                    sponsorblock,
+                    "stats",
+                    database_file,
+                    options.server_address,
+                    youtube_id,
+                    uuid,
+                    options.report_views and "1" or "",
+                    options.auto_upvote and "1" or "",
+                    options.user_id
+                }}, function () end)
+            end
         end
     end
+end
+
+function vote(dir)
+    if last_skip.uuid == "" then return mp.osd_message("[sponsorblock] no sponsors skipped, can't submit vote") end
+    local updown = dir == "1" and "up" or "down"
+    if last_skip.dir == dir then return mp.osd_message("[sponsorblock] " .. updown .. "vote already submitted") end
+    last_skip.dir = dir
+    mp.command_native_async({name = "subprocess", playback_only = false, args = {
+        "python",
+        sponsorblock,
+        "stats",
+        database_file,
+        options.server_address,
+        youtube_id,
+        last_skip.uuid,
+        "",
+        dir,
+        options.user_id
+    }}, function () end)
+    mp.osd_message("[sponsorblock] " .. updown .. "vote submitted")
 end
 
 function update()
@@ -105,6 +139,7 @@ function file_loaded()
     local initialized = init
     ranges = {}
     segment = {a = 0, b = 0, progress = 0}
+    last_skip = {uuid = "", dir = nil}
     local video_path = mp.get_property("path")
     local youtube_id1 = string.match(video_path, "https?://youtu%.be/([%a%d%-_]+).*")
     local youtube_id2 = string.match(video_path, "https?://w?w?w?%.?youtube%.com/v/([%a%d%-_]+).*")
@@ -147,7 +182,7 @@ function submit_segment()
     if end_time - start_time == 0 or end_time == 0 then
         mp.osd_message("[sponsorblock] empty segment, not submitting")
     elseif segment.progress <= 1 then
-        mp.osd_message(string.format("[sponsorblock] press Shift+O again to confirm: %.2d:%.2d:%.2d to %.2d:%.2d:%.2d", start_time/(60*60), start_time/60%60, start_time%60, end_time/(60*60), end_time/60%60, end_time%60), 5)
+        mp.osd_message(string.format("[sponsorblock] press Shift+G again to confirm: %.2d:%.2d:%.2d to %.2d:%.2d:%.2d", start_time/(60*60), start_time/60%60, start_time%60, end_time/(60*60), end_time/60%60, end_time%60), 5)
         segment.progress = segment.progress + 2
     else
         mp.osd_message("[sponsorblock] submitting segment...", 30)
@@ -184,5 +219,7 @@ function submit_segment()
 end
 
 mp.register_event("file-loaded", file_loaded)
-mp.add_key_binding("o", "sponsorblock_set_segment", set_segment)
-mp.add_key_binding("O", "sponsorblock_submit_segment", submit_segment)
+mp.add_key_binding("g", "sponsorblock_set_segment", set_segment)
+mp.add_key_binding("G", "sponsorblock_submit_segment", submit_segment)
+mp.add_key_binding("h", "sponsorblock_upvote", function() return vote("1") end)
+mp.add_key_binding("H", "sponsorblock_downvote", function() return vote("0") end)
