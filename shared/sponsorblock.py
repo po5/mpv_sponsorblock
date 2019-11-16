@@ -6,6 +6,18 @@ import json
 import sys
 import os
 
+if sys.argv[1] in ["submit", "stats"]:
+    if not sys.argv[8]:
+        if os.path.isfile(sys.argv[7]):
+            with open(sys.argv[7]) as f:  
+                uid = f.read()
+        else:
+            uid = "".join(random.choices(string.ascii_letters + string.digits, k=36))
+            with open(sys.argv[7], "w") as f:
+                f.write(uid)
+    else:
+        uid = sys.argv[8]
+
 if sys.argv[1] == "ranges" and not sys.argv[2]:
     times = []
     try:
@@ -62,7 +74,7 @@ elif sys.argv[1] == "update":
         print("database update failed", file=sys.stderr)
 elif sys.argv[1] == "submit":
     try:
-        response = urllib.request.urlopen(f"{sys.argv[3]}/api/postVideoSponsorTimes?videoID={sys.argv[4]}&startTime={sys.argv[5]}&endTime={sys.argv[6]}&userID={sys.argv[7] or ''.join(random.choices(string.ascii_letters + string.digits, k=36))}")
+        response = urllib.request.urlopen(f"{sys.argv[3]}/api/postVideoSponsorTimes?videoID={sys.argv[4]}&startTime={sys.argv[5]}&endTime={sys.argv[6]}&userID={uid}")
         print("success")
     except urllib.error.HTTPError as e:
         print(e.code)
@@ -72,7 +84,7 @@ elif sys.argv[1] == "stats":
     try:
         if sys.argv[6]:
             urllib.request.urlopen(f"{sys.argv[3]}/api/viewedVideoSponsorTime?UUID={sys.argv[5]}")
-        if sys.argv[7]:
-            urllib.request.urlopen(f"{sys.argv[3]}/api/voteOnSponsorTime?UUID={sys.argv[5]}&userID={sys.argv[8] or ''.join(random.choices(string.ascii_letters + string.digits, k=36))}&type={sys.argv[7]}")
+        if sys.argv[9]:
+            urllib.request.urlopen(f"{sys.argv[3]}/api/voteOnSponsorTime?UUID={sys.argv[5]}&userID={uid}&type={sys.argv[9]}")
     except:
         pass

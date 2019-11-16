@@ -32,6 +32,7 @@ mp.options.read_options(options, "sponsorblock")
 local utils = require "mp.utils"
 local scripts_dir = mp.command_native({"expand-path", "~~home/scripts"})
 local sponsorblock = utils.join_path(scripts_dir, "shared/sponsorblock.py")
+local uid_path = utils.join_path(scripts_dir, "shared/sponsorblock.txt")
 local database_file = options.local_database and utils.join_path(scripts_dir, "shared/sponsorblock.db") or ""
 local youtube_id = nil
 local ranges = {}
@@ -97,8 +98,9 @@ function skip_ads(name, pos)
                     youtube_id,
                     uuid,
                     options.report_views and "1" or "",
-                    options.auto_upvote and "1" or "",
-                    options.user_id
+                    uid_path,
+                    options.user_id,
+                    options.auto_upvote and "1" or ""
                 }}, function () end)
             end
         end
@@ -119,8 +121,9 @@ function vote(dir)
         youtube_id,
         last_skip.uuid,
         "",
-        dir,
-        options.user_id
+        uid_path,
+        options.user_id,
+        dir
     }}, function () end)
     mp.osd_message("[sponsorblock] " .. updown .. "vote submitted")
 end
