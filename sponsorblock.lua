@@ -23,7 +23,10 @@ local options = {
     report_views = true,
 
     -- Auto upvote skipped sponsors
-    auto_upvote = true
+    auto_upvote = true,
+
+    -- Use sponsor times from server if they're more up to date than our local database
+    server_fallback = true
 }
 
 mp.options = require "mp.options"
@@ -46,8 +49,15 @@ function file_exists(name)
     if f ~= nil then io.close(f) return true else return false end
 end
 
-function getranges(_, exists)
-    if exists ~= true and not file_exists(database_file) then
+function t_count(t)
+  local count = 0
+  for _ in pairs(t) do count = count + 1 end
+  return count
+end
+
+function getranges(_, exists, db, more)
+    if db ~= "" and db ~= database_file then db = database_file end
+    if exists ~= true and not file_exists(db) then
         if not retrying then
             mp.osd_message("[sponsorblock] database update failed, retrying...")
             retrying = true
@@ -62,21 +72,31 @@ function getranges(_, exists)
         "python",
         sponsorblock,
         "ranges",
-        database_file,
+        db,
         options.server_address,
         youtube_id
     }}
     if not string.match(sponsors.stdout, "^%s*(.*%S)") then return end
     if string.match(sponsors.stdout, "error") then return getranges(true, true) end
+    local new_ranges = {}
+    local r_count = 0
+    if more then r_count = -1 end
     for t in string.gmatch(sponsors.stdout, "[^:]+") do
         uuid = string.match(t, '[^,]+$')
-        if not ranges[uuid] then
-            ranges[uuid] = {
+        if ranges[uuid] then
+            new_ranges[uuid] = ranges[uuid]
+        else
+            new_ranges[uuid] = {
                 start_time = tonumber(string.match(t, '[^,]+')),
                 end_time = tonumber(string.sub(string.match(t, ',[^,]+'), 2)),
                 skipped = false
             }
         end
+        r_count = r_count + 1
+    end
+    local c_count = t_count(ranges)
+    if c_count == 0 or r_count >= c_count then
+        ranges = new_ranges
     end
 end
 
@@ -151,8 +171,18 @@ function file_loaded()
     youtube_id = youtube_id1 or youtube_id2 or youtube_id3 or youtube_id4
     if not youtube_id then return end
     init = true
-    if not options.local_database or file_exists(database_file) then
+    if not options.local_database then
         getranges(true, true)
+    else
+        local exists = file_exists(database_file)
+        if exists and options.server_fallback then
+            getranges(true, true)
+            mp.add_timeout(0, function() getranges(true, true, "", true) end)
+        elseif exists then
+            getranges(true, true)
+        elseif options.server_fallback then
+            mp.add_timeout(0, function() getranges(true, true, "") end)
+        end
     end
     if initialized then return end
     mp.observe_property("time-pos", "native", skip_ads)
