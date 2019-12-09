@@ -32,6 +32,11 @@ local options = {
 mp.options = require "mp.options"
 mp.options.read_options(options, "sponsorblock")
 
+local legacy = mp.command_native_async == nil
+if legacy then
+    options.local_database = false
+end
+
 local utils = require "mp.utils"
 local scripts_dir = mp.find_config_file("scripts")
 local sponsorblock = utils.join_path(scripts_dir, "shared/sponsorblock.py")
@@ -68,14 +73,20 @@ function getranges(_, exists, db, more)
         mp.osd_message("[sponsorblock] database update succeeded")
         retrying = false
     end
-    local sponsors = mp.command_native{name = "subprocess", capture_stdout = true, playback_only = false, args = {
+    local sponsors
+    local args = {
         "python",
         sponsorblock,
         "ranges",
         db,
         options.server_address,
         youtube_id
-    }}
+    }
+    if not legacy then
+        sponsors = mp.command_native{name = "subprocess", capture_stdout = true, playback_only = false, args = args}
+    else
+        sponsors = utils.subprocess{args = args}
+    end
     if not string.match(sponsors.stdout, "^%s*(.*%S)") then return end
     if string.match(sponsors.stdout, "error") then return getranges(true, true) end
     local new_ranges = {}
@@ -109,7 +120,7 @@ function skip_ads(name, pos)
             t.skipped = true
             last_skip = {uuid = uuid, dir = nil}
             if options.report_views or options.auto_upvote then
-                mp.command_native_async({name = "subprocess", playback_only = false, args = {
+                local args = {
                     "python",
                     sponsorblock,
                     "stats",
@@ -121,7 +132,12 @@ function skip_ads(name, pos)
                     uid_path,
                     options.user_id,
                     options.auto_upvote and "1" or ""
-                }}, function () end)
+                }
+                if not legacy then
+                    mp.command_native_async({name = "subprocess", playback_only = false, args = args}, function () end)
+                else
+                    utils.subprocess_detached({args = args})
+                end
             end
         end
     end
@@ -132,7 +148,7 @@ function vote(dir)
     local updown = dir == "1" and "up" or "down"
     if last_skip.dir == dir then return mp.osd_message("[sponsorblock] " .. updown .. "vote already submitted") end
     last_skip.dir = dir
-    mp.command_native_async({name = "subprocess", playback_only = false, args = {
+    local args = {
         "python",
         sponsorblock,
         "stats",
@@ -144,7 +160,12 @@ function vote(dir)
         uid_path,
         options.user_id,
         dir
-    }}, function () end)
+    }
+    if not legacy then
+        mp.command_native_async({name = "subprocess", playback_only = false, args = args}, function () end)
+    else
+        utils.subprocess({args = args})
+    end
     mp.osd_message("[sponsorblock] " .. updown .. "vote submitted")
 end
 
@@ -219,7 +240,8 @@ function submit_segment()
         segment.progress = segment.progress + 2
     else
         mp.osd_message("[sponsorblock] submitting segment...", 30)
-        local submit = mp.command_native{name = "subprocess", capture_stdout = true, playback_only = false, args = {
+        local submit
+        local args = {
             "python",
             sponsorblock,
             "submit",
@@ -230,7 +252,12 @@ function submit_segment()
             tostring(end_time),
             uid_path,
             options.user_id
-        }}
+        }
+        if not legacy then
+            submit = mp.command_native{name = "subprocess", capture_stdout = true, playback_only = false, args = args}
+        else
+            submit = utils.subprocess{args = args}
+        end
         if string.match(submit.stdout, "success") then
             segment = {a = 0, b = 0, progress = 0}
             mp.osd_message("[sponsorblock] segment submitted")
