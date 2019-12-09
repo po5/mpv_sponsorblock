@@ -33,7 +33,7 @@ mp.options = require "mp.options"
 mp.options.read_options(options, "sponsorblock")
 
 local utils = require "mp.utils"
-local scripts_dir = mp.command_native({"expand-path", "~~home/scripts"})
+local scripts_dir = mp.find_config_file("scripts")
 local sponsorblock = utils.join_path(scripts_dir, "shared/sponsorblock.py")
 local uid_path = utils.join_path(scripts_dir, "shared/sponsorblock.txt")
 local database_file = options.local_database and utils.join_path(scripts_dir, "shared/sponsorblock.db") or ""

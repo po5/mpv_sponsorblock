@@ -2,7 +2,6 @@
 A fully-featured port of [SponsorBlock](https://github.com/ajayyy/SponsorBlock) for mpv.
 
 ## Requirements
-- mpv 0.30.0 or above
 - Python 3.x
 
 ## Installation
