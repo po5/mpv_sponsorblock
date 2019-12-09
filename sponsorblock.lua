@@ -81,7 +81,7 @@ function getranges(_, exists, db, more)
     local new_ranges = {}
     local r_count = 0
     if more then r_count = -1 end
-    for t in string.gmatch(sponsors.stdout, "[^:]+") do
+    for t in string.gmatch(sponsors.stdout, "[^:%s]+") do
         uuid = string.match(t, '[^,]+$')
         if ranges[uuid] then
             new_ranges[uuid] = ranges[uuid]
@@ -228,6 +228,7 @@ function submit_segment()
             youtube_id,
             tostring(start_time),
             tostring(end_time),
+            uid_path,
             options.user_id
         }}
         if string.match(submit.stdout, "success") then
