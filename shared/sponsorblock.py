@@ -21,10 +21,10 @@ if sys.argv[1] in ["submit", "stats"]:
 if sys.argv[1] == "ranges" and not sys.argv[2]:
     times = []
     try:
-        response = urllib.request.urlopen(f"{sys.argv[3]}/api/getVideoSponsorTimes?videoID={sys.argv[4]}")
+        response = urllib.request.urlopen(sys.argv[3] + "/api/getVideoSponsorTimes?videoID=" + sys.argv[4])
         data = json.load(response)
         for i, time in enumerate(data["sponsorTimes"]):
-            times.append(f"{time[0]},{time[1]},{data['UUIDs'][i]}")
+            times.append(str(time[0]) + "," + str(time[1]) + "," + data["UUIDs"][i])
         print(":".join(times))
     except urllib.error.HTTPError as e:
         if e.code == 404:
@@ -60,11 +60,11 @@ elif sys.argv[1] == "ranges":
                 dealtwith.append(sponsors_b)
         best.append(max(group, key=lambda x:x["votes"]))
     for time in best:
-        times.append(f"{time['startTime']},{time['endTime']},{time['UUID']}")
+        times.append(str(time["startTime"]) + "," + str(time["endTime"]) + "," + time["UUID"])
     print(":".join(times))
 elif sys.argv[1] == "update":
     try:
-        urllib.request.urlretrieve(f"{sys.argv[3]}/database.db", sys.argv[2] + ".tmp")
+        urllib.request.urlretrieve(sys.argv[3] + "/database.db", sys.argv[2] + ".tmp")
         os.replace(sys.argv[2] + ".tmp", sys.argv[2])
     except PermissionError:
         print("database update failed, file currently in use", file=sys.stderr)
@@ -74,7 +74,7 @@ elif sys.argv[1] == "update":
         print("database update failed", file=sys.stderr)
 elif sys.argv[1] == "submit":
     try:
-        response = urllib.request.urlopen(f"{sys.argv[3]}/api/postVideoSponsorTimes?videoID={sys.argv[4]}&startTime={sys.argv[5]}&endTime={sys.argv[6]}&userID={uid}")
+        response = urllib.request.urlopen(sys.argv[3] + "/api/postVideoSponsorTimes?videoID=" + sys.argv[4] + "&startTime=" + sys.argv[5] + "&endTime=" + sys.argv[6] + "&userID=" + uid)
         print("success")
     except urllib.error.HTTPError as e:
         print(e.code)
@@ -83,8 +83,8 @@ elif sys.argv[1] == "submit":
 elif sys.argv[1] == "stats":
     try:
         if sys.argv[6]:
-            urllib.request.urlopen(f"{sys.argv[3]}/api/viewedVideoSponsorTime?UUID={sys.argv[5]}")
+            urllib.request.urlopen(sys.argv[3] + "/api/viewedVideoSponsorTime?UUID=" + sys.argv[5])
         if sys.argv[9]:
-            urllib.request.urlopen(f"{sys.argv[3]}/api/voteOnSponsorTime?UUID={sys.argv[5]}&userID={uid}&type={sys.argv[9]}")
+            urllib.request.urlopen(sys.argv[3] + "/api/voteOnSponsorTime?UUID=" + sys.argv[5] + "&userID=" + uid + "&type=" + sys.argv[9])
     except:
         pass
