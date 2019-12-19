@@ -18,6 +18,10 @@ if sys.argv[1] in ["submit", "stats"]:
     else:
         uid = sys.argv[8]
 
+opener = urllib.request.build_opener()
+opener.addheaders = [("User-Agent", "mpv_sponsorblock/1.0 (https://github.com/po5/mpv_sponsorblock)")]
+urllib.request.install_opener(opener)
+
 if sys.argv[1] == "ranges" and not sys.argv[2]:
     times = []
     try:
@@ -68,10 +72,13 @@ elif sys.argv[1] == "update":
         os.replace(sys.argv[2] + ".tmp", sys.argv[2])
     except PermissionError:
         print("database update failed, file currently in use", file=sys.stderr)
+        exit(1)
     except ConnectionResetError:
         print("database update failed, connection reset", file=sys.stderr)
+        exit(1)
     except urllib.error.URLError:
         print("database update failed", file=sys.stderr)
+        exit(1)
 elif sys.argv[1] == "submit":
     try:
         response = urllib.request.urlopen(sys.argv[3] + "/api/postVideoSponsorTimes?videoID=" + sys.argv[4] + "&startTime=" + sys.argv[5] + "&endTime=" + sys.argv[6] + "&userID=" + uid)

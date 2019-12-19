@@ -55,12 +55,19 @@ function file_exists(name)
 end
 
 function t_count(t)
-  local count = 0
-  for _ in pairs(t) do count = count + 1 end
-  return count
+    local count = 0
+    for _ in pairs(t) do count = count + 1 end
+    return count
 end
 
 function getranges(_, exists, db, more)
+    if type(exists) == "table" and exists["status"] == "1" then
+        if options.server_fallback then
+            mp.add_timeout(0, function() getranges(true, true, "") end)
+        else
+            return mp.osd_message("[sponsorblock] database update failed, gave up")
+        end
+    end
     if db ~= "" and db ~= database_file then db = database_file end
     if exists ~= true and not file_exists(db) then
         if not retrying then
@@ -83,9 +90,9 @@ function getranges(_, exists, db, more)
         youtube_id
     }
     if not legacy then
-        sponsors = mp.command_native{name = "subprocess", capture_stdout = true, playback_only = false, args = args}
+        sponsors = mp.command_native({name = "subprocess", capture_stdout = true, playback_only = false, args = args})
     else
-        sponsors = utils.subprocess{args = args}
+        sponsors = utils.subprocess({args = args})
     end
     if not string.match(sponsors.stdout, "^%s*(.*%S)") then return end
     if string.match(sponsors.stdout, "error") then return getranges(true, true) end
@@ -254,9 +261,9 @@ function submit_segment()
             options.user_id
         }
         if not legacy then
-            submit = mp.command_native{name = "subprocess", capture_stdout = true, playback_only = false, args = args}
+            submit = mp.command_native({name = "subprocess", capture_stdout = true, playback_only = false, args = args})
         else
-            submit = utils.subprocess{args = args}
+            submit = utils.subprocess({args = args})
         end
         if string.match(submit.stdout, "success") then
             segment = {a = 0, b = 0, progress = 0}
