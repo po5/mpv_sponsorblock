@@ -194,8 +194,8 @@ function file_loaded()
     local video_path = mp.get_property("path")
     local youtube_id1 = string.match(video_path, "https?://youtu%.be/([%a%d%-_]+).*")
     local youtube_id2 = string.match(video_path, "https?://w?w?w?%.?youtube%.com/v/([%a%d%-_]+).*")
-    local youtube_id3 = string.match(video_path, "https?://w?w?w?%.?youtube%.com/watch%?v=([%a%d%-_]+).*")
-    local youtube_id4 = string.match(video_path, "https?://w?w?w?%.?youtube%.com/embed/([%a%d%-_]+).*")
+    local youtube_id3 = string.match(video_path, "/watch%?v=([%a%d%-_]+).*")
+    local youtube_id4 = string.match(video_path, "/embed/([%a%d%-_]+).*")
     youtube_id = youtube_id1 or youtube_id2 or youtube_id3 or youtube_id4
     if not youtube_id then return end
     init = true
