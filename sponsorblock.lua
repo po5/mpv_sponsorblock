@@ -26,7 +26,16 @@ local options = {
     auto_upvote = true,
 
     -- Use sponsor times from server if they're more up to date than our local database
-    server_fallback = true
+    server_fallback = true,
+
+    -- Fast forward through sponsors instead of skipping
+    fast_forward = false,
+
+    -- Playback speed modifier when fast forwarding, applied once every second until cap is reached
+    fast_forward_increase = .2,
+
+    -- Playback speed cap
+    fast_forward_cap = 2
 }
 
 mp.options = require "mp.options"
@@ -48,6 +57,7 @@ local init = false
 local segment = {a = 0, b = 0, progress = 0}
 local retrying = false
 local last_skip = {uuid = "", dir = nil}
+local speed_timer = nil
 
 function file_exists(name)
     local f = io.open(name,"r")
@@ -118,12 +128,24 @@ function getranges(_, exists, db, more)
     end
 end
 
+function fast_forward()
+    local last_speed = mp.get_property_number("speed")
+    local new_speed = math.min(last_speed + options.fast_forward_increase, options.fast_forward_cap)
+    if new_speed <= last_speed then return end
+    mp.set_property("speed", new_speed)
+end
+
 function skip_ads(name, pos)
     if pos == nil then return end
     for uuid, t in pairs(ranges) do
-        if (not options.skip_once or not t.skipped) and t.start_time <= pos and t.end_time > pos then
-            mp.set_property("time-pos", t.end_time)
-            mp.osd_message("[sponsorblock] sponsor skipped")
+        if (options.fast_forward == uuid or not options.skip_once or not t.skipped) and t.start_time <= pos and t.end_time > pos then
+            if options.fast_forward == uuid then return end
+            if options.fast_forward == false then
+                mp.osd_message("[sponsorblock] sponsor skipped")
+                mp.set_property("time-pos", t.end_time)
+            else
+                mp.osd_message("[sponsorblock] skipping sponsor")
+            end
             t.skipped = true
             last_skip = {uuid = uuid, dir = nil}
             if options.report_views or options.auto_upvote then
@@ -146,7 +168,17 @@ function skip_ads(name, pos)
                     utils.subprocess_detached({args = args})
                 end
             end
+            if options.fast_forward ~= false then
+                options.fast_forward = uuid
+                speed_timer = mp.add_periodic_timer(1, fast_forward)
+            end
+            return
         end
+    end
+    if options.fast_forward and options.fast_forward ~= true then
+        options.fast_forward = true
+        speed_timer:kill()
+        mp.set_property("speed", 1)
     end
 end
 
