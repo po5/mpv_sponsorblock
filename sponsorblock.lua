@@ -31,6 +31,15 @@ local options = {
     -- Minimum duration for sponsors (in seconds), segments under that threshold will be ignored
     min_duration = 1,
 
+    -- Fade audio for smoother transitions
+    audio_fade = false,
+
+    -- Audio fade step, applied once every second until cap is reached
+    audio_fade_step = 10,
+
+    -- Audio fade cap
+    audio_fade_cap = 0,
+
     -- Fast forward through sponsors instead of skipping
     fast_forward = false,
 
@@ -61,6 +70,9 @@ local segment = {a = 0, b = 0, progress = 0}
 local retrying = false
 local last_skip = {uuid = "", dir = nil}
 local speed_timer = nil
+local fade_timer = nil
+local fade_dir = nil
+local volume_before = mp.get_property_number("volume")
 
 function file_exists(name)
     local f = io.open(name,"r")
@@ -142,8 +154,21 @@ function fast_forward()
     mp.set_property("speed", new_speed)
 end
 
+function fade_audio(step)
+    local last_volume = mp.get_property_number("volume")
+    local new_volume = math.max(options.audio_fade_cap, math.min(last_volume + step, volume_before))
+    if new_volume == last_volume then
+        if step >= 0 then fade_dir = nil end
+        if fade_timer ~= nil then fade_timer:kill() end
+        fade_timer = nil
+        return
+    end
+    mp.set_property("volume", new_volume)
+end
+
 function skip_ads(name, pos)
     if pos == nil then return end
+    local sponsor_ahead = false
     for uuid, t in pairs(ranges) do
         if (options.fast_forward == uuid or not options.skip_once or not t.skipped) and t.start_time <= pos and t.end_time > pos then
             if options.fast_forward == uuid then return end
@@ -180,7 +205,21 @@ function skip_ads(name, pos)
                 speed_timer = mp.add_periodic_timer(1, fast_forward)
             end
             return
+        elseif t.start_time <= pos + 1 and t.end_time > pos + 1 then
+            sponsor_ahead = true
         end
+    end
+    if sponsor_ahead and options.audio_fade then
+        if fade_dir ~= false then
+            if fade_dir == nil then volume_before = mp.get_property_number("volume") end
+            if fade_timer ~= nil then fade_timer:kill() end
+            fade_dir = false
+            fade_timer = mp.add_periodic_timer(.1, function() fade_audio(-options.audio_fade_step) end)
+        end
+    elseif fade_dir == false then
+        fade_dir = true
+        if fade_timer ~= nil then fade_timer:kill() end
+        fade_timer = mp.add_periodic_timer(.1, function() fade_audio(options.audio_fade_step) end)
     end
     if options.fast_forward and options.fast_forward ~= true then
         options.fast_forward = true
