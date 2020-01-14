@@ -28,6 +28,9 @@ local options = {
     -- Use sponsor times from server if they're more up to date than our local database
     server_fallback = true,
 
+    -- Minimum duration for sponsors (in seconds), segments under that threshold will be ignored
+    min_duration = 1,
+
     -- Fast forward through sponsors instead of skipping
     fast_forward = false,
 
@@ -114,11 +117,15 @@ function getranges(_, exists, db, more)
         if ranges[uuid] then
             new_ranges[uuid] = ranges[uuid]
         else
-            new_ranges[uuid] = {
-                start_time = tonumber(string.match(t, '[^,]+')),
-                end_time = tonumber(string.sub(string.match(t, ',[^,]+'), 2)),
-                skipped = false
-            }
+            start_time = tonumber(string.match(t, '[^,]+'))
+            end_time = tonumber(string.sub(string.match(t, ',[^,]+'), 2))
+            if end_time - start_time >= options.min_duration then
+                new_ranges[uuid] = {
+                    start_time = start_time,
+                    end_time = end_time,
+                    skipped = false
+                }
+            end
         end
         r_count = r_count + 1
     end
