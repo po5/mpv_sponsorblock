@@ -34,7 +34,7 @@ local options = {
     -- Fade audio for smoother transitions
     audio_fade = false,
 
-    -- Audio fade step, applied once every second until cap is reached
+    -- Audio fade step, applied once every 100ms until cap is reached
     audio_fade_step = 10,
 
     -- Audio fade cap
