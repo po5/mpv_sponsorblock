@@ -30,6 +30,8 @@ if sys.argv[1] == "ranges" and not sys.argv[2]:
         for i, time in enumerate(data["sponsorTimes"]):
             times.append(str(time[0]) + "," + str(time[1]) + "," + data["UUIDs"][i])
         print(":".join(times))
+    except (TimeoutError, urllib.error.URLError) as e:
+        print("error")
     except urllib.error.HTTPError as e:
         if e.code == 404:
             print("")
@@ -75,6 +77,9 @@ elif sys.argv[1] == "update":
         exit(1)
     except ConnectionResetError:
         print("database update failed, connection reset", file=sys.stderr)
+        exit(1)
+    except TimeoutError:
+        print("database update failed, timed out", file=sys.stderr)
         exit(1)
     except urllib.error.URLError:
         print("database update failed", file=sys.stderr)
