@@ -205,21 +205,23 @@ function skip_ads(name, pos)
                 speed_timer = mp.add_periodic_timer(1, fast_forward)
             end
             return
-        elseif t.start_time <= pos + 1 and t.end_time > pos + 1 then
+        elseif (not options.skip_once or not t.skipped) and t.start_time <= pos + 1 and t.end_time > pos + 1 then
             sponsor_ahead = true
         end
     end
-    if sponsor_ahead and options.audio_fade then
-        if fade_dir ~= false then
-            if fade_dir == nil then volume_before = mp.get_property_number("volume") end
+    if options.audio_fade then
+        if sponsor_ahead then
+            if fade_dir ~= false then
+                if fade_dir == nil then volume_before = mp.get_property_number("volume") end
+                if fade_timer ~= nil then fade_timer:kill() end
+                fade_dir = false
+                fade_timer = mp.add_periodic_timer(.1, function() fade_audio(-options.audio_fade_step) end)
+            end
+        elseif fade_dir == false then
+            fade_dir = true
             if fade_timer ~= nil then fade_timer:kill() end
-            fade_dir = false
-            fade_timer = mp.add_periodic_timer(.1, function() fade_audio(-options.audio_fade_step) end)
+            fade_timer = mp.add_periodic_timer(.1, function() fade_audio(options.audio_fade_step) end)
         end
-    elseif fade_dir == false then
-        fade_dir = true
-        if fade_timer ~= nil then fade_timer:kill() end
-        fade_timer = mp.add_periodic_timer(.1, function() fade_audio(options.audio_fade_step) end)
     end
     if options.fast_forward and options.fast_forward ~= true then
         options.fast_forward = true
