@@ -6,7 +6,7 @@
 local ON_WINDOWS = package.config:sub(1,1) ~= '/'
 
 local options = {
-    server_address = "https://api.sponsor.ajay.app",
+    server_address = "https://sponsor.ajay.app",
 
     python_path = ON_WINDOWS and "python" or "python3",
 
