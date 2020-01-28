@@ -4,7 +4,7 @@
 -- using data from https://github.com/ajayyy/SponsorBlock
 
 local options = {
-    server_address = "https://sponsor.ajay.app",
+    server_address = "https://api.sponsor.ajay.app",
 
     -- If true, sponsored segments will only be skipped once
     skip_once = true,
