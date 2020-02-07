@@ -107,7 +107,7 @@ function getranges(_, exists, db, more)
     end
     local sponsors
     local args = {
-        "python",
+        "python3",
         sponsorblock,
         "ranges",
         db,
@@ -182,7 +182,7 @@ function skip_ads(name, pos)
             last_skip = {uuid = uuid, dir = nil}
             if options.report_views or options.auto_upvote then
                 local args = {
-                    "python",
+                    "python3",
                     sponsorblock,
                     "stats",
                     database_file,
@@ -236,7 +236,7 @@ function vote(dir)
     if last_skip.dir == dir then return mp.osd_message("[sponsorblock] " .. updown .. "vote already submitted") end
     last_skip.dir = dir
     local args = {
-        "python",
+        "python3",
         sponsorblock,
         "stats",
         database_file,
@@ -258,7 +258,7 @@ end
 
 function update()
     mp.command_native_async({name = "subprocess", playback_only = false, args = {
-        "python",
+        "python3",
         sponsorblock,
         "update",
         database_file,
@@ -329,7 +329,7 @@ function submit_segment()
         mp.osd_message("[sponsorblock] submitting segment...", 30)
         local submit
         local args = {
-            "python",
+            "python3",
             sponsorblock,
             "submit",
             database_file,
