@@ -3,8 +3,12 @@
 -- This script skips sponsored segments of YouTube videos
 -- using data from https://github.com/ajayyy/SponsorBlock
 
+local ON_WINDOWS = package.config:sub(1,1) ~= '/'
+
 local options = {
     server_address = "https://api.sponsor.ajay.app",
+
+    python_path = ON_WINDOWS and "python" or "python3",
 
     -- If true, sponsored segments will only be skipped once
     skip_once = true,
@@ -107,7 +111,7 @@ function getranges(_, exists, db, more)
     end
     local sponsors
     local args = {
-        "python",
+        options.python_path,
         sponsorblock,
         "ranges",
         db,
@@ -182,7 +186,7 @@ function skip_ads(name, pos)
             last_skip = {uuid = uuid, dir = nil}
             if options.report_views or options.auto_upvote then
                 local args = {
-                    "python",
+                    options.python_path,
                     sponsorblock,
                     "stats",
                     database_file,
@@ -236,7 +240,7 @@ function vote(dir)
     if last_skip.dir == dir then return mp.osd_message("[sponsorblock] " .. updown .. "vote already submitted") end
     last_skip.dir = dir
     local args = {
-        "python",
+        options.python_path,
         sponsorblock,
         "stats",
         database_file,
@@ -258,7 +262,7 @@ end
 
 function update()
     mp.command_native_async({name = "subprocess", playback_only = false, args = {
-        "python",
+        options.python_path,
         sponsorblock,
         "update",
         database_file,
@@ -329,7 +333,7 @@ function submit_segment()
         mp.osd_message("[sponsorblock] submitting segment...", 30)
         local submit
         local args = {
-            "python",
+            options.python_path,
             sponsorblock,
             "submit",
             database_file,
