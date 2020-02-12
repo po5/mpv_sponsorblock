@@ -51,7 +51,11 @@ local options = {
     fast_forward_increase = .2,
 
     -- Playback speed cap
-    fast_forward_cap = 2
+    fast_forward_cap = 2,
+
+    -- Pattern for video id in local files, ignored if blank
+    -- Recommended value for base youtube-dl is "-([%a%d%-_]+)%.[mw][kpe][v4b][m]?$"
+    local_pattern = ""
 }
 
 mp.options = require "mp.options"
@@ -280,7 +284,11 @@ function file_loaded()
     local youtube_id2 = string.match(video_path, "https?://w?w?w?%.?youtube%.com/v/([%a%d%-_]+).*")
     local youtube_id3 = string.match(video_path, "/watch%?v=([%a%d%-_]+).*")
     local youtube_id4 = string.match(video_path, "/embed/([%a%d%-_]+).*")
-    youtube_id = youtube_id1 or youtube_id2 or youtube_id3 or youtube_id4
+    local local_pattern = nil
+    if options.local_pattern ~= "" then
+        local_pattern = string.match(video_path, options.local_pattern)
+    end
+    youtube_id = youtube_id1 or youtube_id2 or youtube_id3 or youtube_id4 or local_pattern
     if not youtube_id then return end
     init = true
     if not options.local_database then
