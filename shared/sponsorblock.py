@@ -1,4 +1,5 @@
 import urllib.request
+import urllib.parse
 import sqlite3
 import random
 import string
@@ -6,7 +7,7 @@ import json
 import sys
 import os
 
-if sys.argv[1] in ["submit", "stats"]:
+if sys.argv[1] in ["submit", "stats", "username"]:
     if not sys.argv[8]:
         if os.path.isfile(sys.argv[7]):
             with open(sys.argv[7]) as f:  
@@ -98,5 +99,12 @@ elif sys.argv[1] == "stats":
             urllib.request.urlopen(sys.argv[3] + "/api/viewedVideoSponsorTime?UUID=" + sys.argv[5])
         if sys.argv[9]:
             urllib.request.urlopen(sys.argv[3] + "/api/voteOnSponsorTime?UUID=" + sys.argv[5] + "&userID=" + uid + "&type=" + sys.argv[9])
+    except:
+        pass
+elif sys.argv[1] == "username":
+    try:
+        data = urllib.parse.urlencode({"userID": uid, "userName": sys.argv[9]}).encode()
+        req =  urllib.request.Request(sys.argv[3] + "/api/setUsername", data=data)
+        urllib.request.urlopen(req)
     except:
         pass

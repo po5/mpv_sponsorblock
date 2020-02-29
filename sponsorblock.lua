@@ -23,6 +23,9 @@ local options = {
     -- User ID used to submit sponsored segments, leave blank for random
     user_id = "",
 
+    -- Name to display on the stats page https://sponsor.ajay.app/stats/ leave blank to keep current name
+    display_name = "",
+
     -- Tell the server when a skip happens
     report_views = true,
 
@@ -306,6 +309,26 @@ function file_loaded()
     end
     if initialized then return end
     mp.observe_property("time-pos", "native", skip_ads)
+    if options.display_name ~= "" then
+        local args = {
+            options.python_path,
+            sponsorblock,
+            "username",
+            database_file,
+            options.server_address,
+            youtube_id,
+            "",
+            "",
+            uid_path,
+            options.user_id,
+            options.display_name
+        }
+        if not legacy then
+            mp.command_native_async({name = "subprocess", playback_only = false, args = args}, function () end)
+        else
+            utils.subprocess_detached({args = args})
+        end
+    end
     if not options.local_database or (not options.auto_update and file_exists(database_file)) then return end
     update()
 end
