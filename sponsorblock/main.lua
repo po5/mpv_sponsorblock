@@ -70,7 +70,11 @@ if legacy then
 end
 
 local utils = require "mp.utils"
-local scripts_dir = mp.find_config_file("scripts")
+if mp.get_script_directory == nil then
+    scripts_dir = mp.find_config_file("scripts/sponsorblock")
+else
+    scripts_dir = mp.get_script_directory()
+end
 local sponsorblock = utils.join_path(scripts_dir, "shared/sponsorblock.py")
 local uid_path = utils.join_path(scripts_dir, "shared/sponsorblock.txt")
 local database_file = options.local_database and utils.join_path(scripts_dir, "shared/sponsorblock.db") or ""

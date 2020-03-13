@@ -104,7 +104,7 @@ elif sys.argv[1] == "stats":
 elif sys.argv[1] == "username":
     try:
         data = urllib.parse.urlencode({"userID": uid, "userName": sys.argv[9]}).encode()
-        req =  urllib.request.Request(sys.argv[3] + "/api/setUsername", data=data)
+        req = urllib.request.Request(sys.argv[3] + "/api/setUsername", data=data)
         urllib.request.urlopen(req)
     except:
         pass
