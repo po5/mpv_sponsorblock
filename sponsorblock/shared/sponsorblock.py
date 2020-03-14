@@ -23,7 +23,7 @@ opener = urllib.request.build_opener()
 opener.addheaders = [("User-Agent", "mpv_sponsorblock/1.0 (https://github.com/po5/mpv_sponsorblock)")]
 urllib.request.install_opener(opener)
 
-if sys.argv[1] == "ranges" and not sys.argv[2]:
+if sys.argv[1] == "ranges" and (not sys.argv[2] or not os.path.isfile(sys.argv[2])):
     times = []
     try:
         response = urllib.request.urlopen(sys.argv[3] + "/api/getVideoSponsorTimes?videoID=" + sys.argv[4])
