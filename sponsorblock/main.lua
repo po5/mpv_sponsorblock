@@ -107,14 +107,9 @@ function t_count(t)
 end
 
 function create_chapter(chapter_title, chapter_time)
-    local chapter_count = mp.get_property_number("chapter-list/count")
-    local all_chapters = mp.get_property_native("chapter-list")
-
-    all_chapters[chapter_count + 1] = {
-        title = chapter_title,
-        time = chapter_time
-    }
-    mp.set_property_native("chapter-list", all_chapters)
+    local chapters = mp.get_property_native("chapter-list")
+    table.insert(chapters, {title=chapter_title, time=chapter_time})
+    mp.set_property_native("chapter-list", chapters)
 end
 
 function getranges(_, exists, db, more)
