@@ -10,6 +10,9 @@ local options = {
 
     python_path = ON_WINDOWS and "python" or "python3",
 
+    -- Whether or not to automatically skip sponsors
+    skip = true,
+
     -- If true, sponsored segments will only be skipped once
     skip_once = true,
 
@@ -34,6 +37,9 @@ local options = {
 
     -- Use sponsor times from server if they're more up to date than our local database
     server_fallback = true,
+
+    -- Create chapters at sponsor boundaries for OSC display and manual skipping with skip=false
+    make_chapters = true,
 
     -- Minimum duration for sponsors (in seconds), segments under that threshold will be ignored
     min_duration = 1,
@@ -100,6 +106,17 @@ function t_count(t)
     return count
 end
 
+function create_chapter(chapter_title, chapter_time)
+    local chapter_count = mp.get_property_number("chapter-list/count")
+    local all_chapters = mp.get_property_native("chapter-list")
+
+    all_chapters[chapter_count + 1] = {
+        title = chapter_title,
+        time = chapter_time
+    }
+    mp.set_property_native("chapter-list", all_chapters)
+end
+
 function getranges(_, exists, db, more)
     if type(exists) == "table" and exists["status"] == "1" then
         if options.server_fallback then
@@ -152,6 +169,10 @@ function getranges(_, exists, db, more)
                     end_time = end_time,
                     skipped = false
                 }
+            end
+            if options.make_chapters then
+                create_chapter("Sponsor start (" .. string.sub(uuid, 1, 6) .. ")", start_time)
+                create_chapter("Sponsor end (" .. string.sub(uuid, 1, 6) .. ")", end_time)
             end
         end
         r_count = r_count + 1
@@ -312,7 +333,9 @@ function file_loaded()
         end
     end
     if initialized then return end
-    mp.observe_property("time-pos", "native", skip_ads)
+    if options.skip then
+        mp.observe_property("time-pos", "native", skip_ads)
+    end
     if options.display_name ~= "" then
         local args = {
             options.python_path,
