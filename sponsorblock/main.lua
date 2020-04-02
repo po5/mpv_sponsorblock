@@ -108,7 +108,8 @@ end
 
 function create_chapter(chapter_title, chapter_time)
     local chapters = mp.get_property_native("chapter-list")
-    table.insert(chapters, {title=chapter_title, time=chapter_time})
+    local duration = mp.get_property_native("duration")
+    table.insert(chapters, {title=chapter_title, time=(duration == nil or duration > chapter_time) and chapter_time or duration - .001})
     mp.set_property_native("chapter-list", chapters)
 end
 
