@@ -106,10 +106,15 @@ function t_count(t)
     return count
 end
 
+function time_sort(a, b)
+    return a.time < b.time
+end
+
 function create_chapter(chapter_title, chapter_time)
     local chapters = mp.get_property_native("chapter-list")
     local duration = mp.get_property_native("duration")
     table.insert(chapters, {title=chapter_title, time=(duration == nil or duration > chapter_time) and chapter_time or duration - .001})
+    table.sort(chapters, time_sort)
     mp.set_property_native("chapter-list", chapters)
 end
 
@@ -159,6 +164,12 @@ function getranges(_, exists, db, more)
         else
             start_time = tonumber(string.match(t, '[^,]+'))
             end_time = tonumber(string.sub(string.match(t, ',[^,]+'), 2))
+            for o_uuid, o_t in pairs(ranges) do
+                if (start_time >= o_t.start_time and start_time <= o_t.end_time) or (o_t.start_time >= start_time and o_t.start_time <= end_time) then
+                    new_ranges[o_uuid] = o_t
+                    goto continue
+                end
+            end
             if end_time - start_time >= options.min_duration then
                 new_ranges[uuid] = {
                     start_time = start_time,
@@ -171,6 +182,7 @@ function getranges(_, exists, db, more)
                 create_chapter("Sponsor end (" .. string.sub(uuid, 1, 6) .. ")", end_time)
             end
         end
+        ::continue::
         r_count = r_count + 1
     end
     local c_count = t_count(ranges)
