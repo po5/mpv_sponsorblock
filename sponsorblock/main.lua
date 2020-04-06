@@ -87,7 +87,7 @@ local database_file = options.local_database and utils.join_path(scripts_dir, "s
 local youtube_id = nil
 local ranges = {}
 local init = false
-local segment = {a = 0, b = 0, progress = 0}
+local segment = {a = 0, b = 0, progress = 0, first = true}
 local retrying = false
 local last_skip = {uuid = "", dir = nil}
 local speed_timer = nil
@@ -108,6 +108,17 @@ end
 
 function time_sort(a, b)
     return a.time < b.time
+end
+
+function clean_chapters()
+    local chapters = mp.get_property_native("chapter-list")
+    local new_chapters = {}
+    for _, chapter in pairs(chapters) do
+        if chapter.title ~= "Preview segment start" and chapter.title ~= "Preview segment end" then
+            table.insert(new_chapters, chapter)
+        end
+    end
+    mp.set_property_native("chapter-list", new_chapters)
 end
 
 function create_chapter(chapter_title, chapter_time)
@@ -313,7 +324,7 @@ end
 function file_loaded()
     local initialized = init
     ranges = {}
-    segment = {a = 0, b = 0, progress = 0}
+    segment = {a = 0, b = 0, progress = 0, first = true}
     last_skip = {uuid = "", dir = nil}
     local video_path = mp.get_property("path")
     local youtube_id1 = string.match(video_path, "https?://youtu%.be/([%a%d%-_]+).*")
@@ -384,6 +395,16 @@ function set_segment()
         segment.a = pos
         mp.osd_message("[sponsorblock] segment boundary A set, press again for boundary B", 3)
     end
+    if options.make_chapters and not segment.first then
+        local start_time = math.min(segment.a, segment.b)
+        local end_time = math.max(segment.a, segment.b)
+        if end_time - start_time ~= 0 and end_time ~= 0 then
+            clean_chapters()
+            create_chapter("Preview segment start", start_time)
+            create_chapter("Preview segment end", end_time)
+        end
+    end
+    segment.first = false
 end
 
 function submit_segment()
@@ -416,20 +437,23 @@ function submit_segment()
             submit = utils.subprocess({args = args})
         end
         if string.match(submit.stdout, "success") then
-            segment = {a = 0, b = 0, progress = 0}
+            segment = {a = 0, b = 0, progress = 0, first = true}
             mp.osd_message("[sponsorblock] segment submitted")
+            clean_chapters()
+            create_chapter("Submitted segment start", start_time)
+            create_chapter("Submitted segment end", end_time)
         elseif string.match(submit.stdout, "error") then
             mp.osd_message("[sponsorblock] segment submission failed, server may be down. try again", 5)
         elseif string.match(submit.stdout, "502") then
             mp.osd_message("[sponsorblock] segment submission failed, server is down. try again", 5)
         elseif string.match(submit.stdout, "400") then
             mp.osd_message("[sponsorblock] segment submission failed, impossible inputs", 5)
-            segment = {a = 0, b = 0, progress = 0}
+            segment = {a = 0, b = 0, progress = 0, first = true}
         elseif string.match(submit.stdout, "429") then
             mp.osd_message("[sponsorblock] segment submission failed, rate limited. try again", 5)
         elseif string.match(submit.stdout, "409") then
             mp.osd_message("[sponsorblock] segment already submitted", 3)
-            segment = {a = 0, b = 0, progress = 0}
+            segment = {a = 0, b = 0, progress = 0, first = true}
         else
             mp.osd_message("[sponsorblock] segment submission failed", 5)
         end
