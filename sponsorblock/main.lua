@@ -439,9 +439,11 @@ function submit_segment()
         if string.match(submit.stdout, "success") then
             segment = {a = 0, b = 0, progress = 0, first = true}
             mp.osd_message("[sponsorblock] segment submitted")
-            clean_chapters()
-            create_chapter("Submitted segment start", start_time)
-            create_chapter("Submitted segment end", end_time)
+            if options.make_chapters then
+                clean_chapters()
+                create_chapter("Submitted segment start", start_time)
+                create_chapter("Submitted segment end", end_time)
+            end
         elseif string.match(submit.stdout, "error") then
             mp.osd_message("[sponsorblock] segment submission failed, server may be down. try again", 5)
         elseif string.match(submit.stdout, "502") then
