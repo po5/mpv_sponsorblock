@@ -42,7 +42,7 @@ elif sys.argv[1] == "ranges":
     conn = sqlite3.connect(sys.argv[2])
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    c.execute("SELECT startTime, endTime, votes, UUID FROM sponsorTimes WHERE videoID = ? AND shadowHidden = 0 AND votes > -1", (sys.argv[4],))
+    c.execute("SELECT startTime, endTime, votes, UUID FROM sponsorTimes WHERE videoID = ? AND shadowHidden = 0 AND votes > -1 AND category = 'sponsor'", (sys.argv[4],))
     times = []
     sponsors = c.fetchall()
     best = list(sponsors)
