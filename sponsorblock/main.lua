@@ -414,7 +414,7 @@ function submit_segment()
     if end_time - start_time == 0 or end_time == 0 then
         mp.osd_message("[sponsorblock] empty segment, not submitting")
     elseif segment.progress <= 1 then
-        mp.osd_message(string.format("[sponsorblock] press Shift+G again to confirm: %.2d:%.2d:%.2d to %.2d:%.2d:%.2d", start_time/(60*60), start_time/60%60, start_time%60, end_time/(60*60), end_time/60%60, end_time%60), 5)
+        mp.osd_message(string.format("[sponsorblock] press Shift+G again to confirm: %.2d:%.2d:%.2d to %.2d:%.2d:%.2d", math.floor(start_time/(60*60)), math.floor(start_time/60%60), math.floor(start_time%60), math.floor(end_time/(60*60)), math.floor(end_time/60%60), math.floor(end_time%60)), 5)
         segment.progress = segment.progress + 2
     else
         mp.osd_message("[sponsorblock] submitting segment...", 30)
