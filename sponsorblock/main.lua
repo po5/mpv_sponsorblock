@@ -17,7 +17,7 @@ local options = {
     skip_once = true,
 
     -- Note that sponsored segments may ocasionally be inaccurate if this is turned off
-    -- see https://ajay.app/blog.html#voting-and-pseudo-randomness-or-sponsorblock-or-youtube-sponsorship-segment-blocker
+    -- see https://blog.ajay.app/voting-and-pseudo-randomness-or-sponsorblock-or-youtube-sponsorship-segment-blocker
     local_database = true,
 
     -- Update database on first run, does nothing if local_database is false
