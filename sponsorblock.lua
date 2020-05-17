@@ -3,7 +3,7 @@
 -- This script skips sponsored segments of YouTube videos
 -- using data from https://github.com/ajayyy/SponsorBlock
 
-local ON_WINDOWS = package.config:sub(1,1) ~= '/'
+local ON_WINDOWS = package.config:sub(1,1) ~= "/"
 
 local options = {
     server_address = "https://sponsor.ajay.app",
@@ -76,14 +76,11 @@ if legacy then
 end
 
 local utils = require "mp.utils"
-if mp.get_script_directory == nil then
-    scripts_dir = mp.find_config_file("scripts/sponsorblock")
-else
-    scripts_dir = mp.get_script_directory()
-end
-local sponsorblock = utils.join_path(scripts_dir, "shared/sponsorblock.py")
-local uid_path = utils.join_path(scripts_dir, "shared/sponsorblock.txt")
-local database_file = options.local_database and utils.join_path(scripts_dir, "shared/sponsorblock.db") or ""
+scripts_dir = mp.find_config_file("scripts")
+
+local sponsorblock = utils.join_path(scripts_dir, "sponsorblock_shared/sponsorblock.py")
+local uid_path = utils.join_path(scripts_dir, "sponsorblock_shared/sponsorblock.txt")
+local database_file = options.local_database and utils.join_path(scripts_dir, "sponsorblock_shared/sponsorblock.db") or ""
 local youtube_id = nil
 local ranges = {}
 local init = false
@@ -169,12 +166,12 @@ function getranges(_, exists, db, more)
     local r_count = 0
     if more then r_count = -1 end
     for t in string.gmatch(sponsors.stdout, "[^:%s]+") do
-        uuid = string.match(t, '[^,]+$')
+        uuid = string.match(t, "[^,]+$")
         if ranges[uuid] then
             new_ranges[uuid] = ranges[uuid]
         else
-            start_time = tonumber(string.match(t, '[^,]+'))
-            end_time = tonumber(string.sub(string.match(t, ',[^,]+'), 2))
+            start_time = tonumber(string.match(t, "[^,]+"))
+            end_time = tonumber(string.sub(string.match(t, ",[^,]+"), 2))
             for o_uuid, o_t in pairs(ranges) do
                 if (start_time >= o_t.start_time and start_time <= o_t.end_time) or (o_t.start_time >= start_time and o_t.start_time <= end_time) then
                     new_ranges[o_uuid] = o_t
@@ -463,7 +460,12 @@ function submit_segment()
 end
 
 mp.register_event("file-loaded", file_loaded)
-mp.add_key_binding("g", "sponsorblock_set_segment", set_segment)
-mp.add_key_binding("G", "sponsorblock_submit_segment", submit_segment)
-mp.add_key_binding("h", "sponsorblock_upvote", function() return vote("1") end)
-mp.add_key_binding("H", "sponsorblock_downvote", function() return vote("0") end)
+mp.add_key_binding("g", "set_segment", set_segment)
+mp.add_key_binding("G", "submit_segment", submit_segment)
+mp.add_key_binding("h", "upvote_segment", function() return vote("1") end)
+mp.add_key_binding("H", "downvote_segment", function() return vote("0") end)
+-- Bindings below are for backwards compatibility and could be removed at any time
+mp.add_key_binding(nil, "sponsorblock_set_segment", set_segment)
+mp.add_key_binding(nil, "sponsorblock_submit_segment", submit_segment)
+mp.add_key_binding(nil, "sponsorblock_upvote", function() return vote("1") end)
+mp.add_key_binding(nil, "sponsorblock_downvote", function() return vote("0") end)
