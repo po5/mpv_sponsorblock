@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 source_dir="$(cd "$(dirname "$0")" >/dev/null 2>&1 ; pwd -P)"
 mpv_script_dir="$HOME/.config/mpv/scripts"
