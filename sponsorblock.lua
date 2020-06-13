@@ -63,7 +63,7 @@ local options = {
     fast_forward_cap = 2,
 
     -- Pattern for video id in local files, ignored if blank
-    -- Recommended value for base youtube-dl is "-([%a%d%-_]+)%.[mw][kpe][v4b][m]?$"
+    -- Recommended value for base youtube-dl is "-([%w-_]+)%.[mw][kpe][v4b]m?$"
     local_pattern = ""
 }
 
@@ -324,16 +324,17 @@ function file_loaded()
     segment = {a = 0, b = 0, progress = 0, first = true}
     last_skip = {uuid = "", dir = nil}
     local video_path = mp.get_property("path")
-    local youtube_id1 = string.match(video_path, "https?://youtu%.be/([%a%d%-_]+).*")
-    local youtube_id2 = string.match(video_path, "https?://w?w?w?%.?youtube%.com/v/([%a%d%-_]+).*")
-    local youtube_id3 = string.match(video_path, "/watch%?v=([%a%d%-_]+).*")
-    local youtube_id4 = string.match(video_path, "/embed/([%a%d%-_]+).*")
+    local youtube_id1 = string.match(video_path, "https?://youtu%.be/([%w-_]+).*")
+    local youtube_id2 = string.match(video_path, "https?://w?w?w?%.?youtube%.com/v/([%w-_]+).*")
+    local youtube_id3 = string.match(video_path, "/watch.*[?&]v=([%w-_]+).*")
+    local youtube_id4 = string.match(video_path, "/embed/([%w-_]+).*")
     local local_pattern = nil
     if options.local_pattern ~= "" then
         local_pattern = string.match(video_path, options.local_pattern)
     end
     youtube_id = youtube_id1 or youtube_id2 or youtube_id3 or youtube_id4 or local_pattern
-    if not youtube_id then return end
+    if not youtube_id or string.len(youtube_id) < 11 or (local_pattern and string.len(youtube_id) ~= 11) then return end
+    youtube_id = string.sub(youtube_id, 1, 11)
     init = true
     if not options.local_database then
         getranges(true, true)
