@@ -10,8 +10,11 @@ local options = {
 
     python_path = ON_WINDOWS and "python" or "python3",
 
-    -- Whether or not to automatically skip sponsors
-    skip = true,
+    -- Categories to fetch
+    categories = "sponsor,intro,outro,interaction,selfpromo",
+
+    -- Categories to skip automatically
+    skip_categories = "sponsor",
 
     -- If true, sponsored segments will only be skipped once
     skip_once = true,
@@ -38,7 +41,7 @@ local options = {
     -- Use sponsor times from server if they're more up to date than our local database
     server_fallback = true,
 
-    -- Create chapters at sponsor boundaries for OSC display and manual skipping with skip=false
+    -- Create chapters at sponsor boundaries for OSC display and manual skipping
     make_chapters = true,
 
     -- Minimum duration for sponsors (in seconds), segments under that threshold will be ignored
@@ -64,7 +67,10 @@ local options = {
 
     -- Pattern for video id in local files, ignored if blank
     -- Recommended value for base youtube-dl is "-([%w-_]+)%.[mw][kpe][v4b]m?$"
-    local_pattern = ""
+    local_pattern = "",
+
+    -- Legacy option, use skip_categories instead
+    skip = true
 }
 
 mp.options = require "mp.options"
@@ -91,6 +97,13 @@ local speed_timer = nil
 local fade_timer = nil
 local fade_dir = nil
 local volume_before = mp.get_property_number("volume")
+local categories = {}
+local all_categories = {"sponsor", "intro", "outro", "interaction", "selfpromo", "music_offtopic"}
+local chapter_cache = {}
+
+for category in string.gmatch(options.skip_categories, "([^,]+)") do
+    categories[category] = true
+end
 
 function file_exists(name)
     local f = io.open(name,"r")
@@ -104,6 +117,9 @@ function t_count(t)
 end
 
 function time_sort(a, b)
+    if a.time == b.time then
+        return string.match(a.title, "segment end")
+    end
     return a.time < b.time
 end
 
@@ -153,7 +169,8 @@ function getranges(_, exists, db, more)
         "ranges",
         db,
         options.server_address,
-        youtube_id
+        youtube_id,
+        options.categories
     }
     if not legacy then
         sponsors = mp.command_native({name = "subprocess", capture_stdout = true, playback_only = false, args = args})
@@ -166,7 +183,7 @@ function getranges(_, exists, db, more)
     local r_count = 0
     if more then r_count = -1 end
     for t in string.gmatch(sponsors.stdout, "[^:%s]+") do
-        uuid = string.match(t, "[^,]+$")
+        uuid = string.match(t, "([^,]+),[^,]+$")
         if ranges[uuid] then
             new_ranges[uuid] = ranges[uuid]
         else
@@ -178,16 +195,20 @@ function getranges(_, exists, db, more)
                     goto continue
                 end
             end
-            if end_time - start_time >= options.min_duration then
+            category = string.match(t, "[^,]+$")
+            if categories[category] and end_time - start_time >= options.min_duration then
                 new_ranges[uuid] = {
                     start_time = start_time,
                     end_time = end_time,
+                    category = category,
                     skipped = false
                 }
             end
-            if options.make_chapters then
-                create_chapter("Sponsor start (" .. string.sub(uuid, 1, 6) .. ")", start_time)
-                create_chapter("Sponsor end (" .. string.sub(uuid, 1, 6) .. ")", end_time)
+            if options.make_chapters and not chapter_cache[uuid] then
+                chapter_cache[uuid] = true
+                local category_title = (category:gsub("^%l", string.upper):gsub("_", " "))
+                create_chapter(category_title .. " segment start (" .. string.sub(uuid, 1, 6) .. ")", start_time)
+                create_chapter(category_title .. " segment end (" .. string.sub(uuid, 1, 6) .. ")", end_time)
             end
         end
         ::continue::
@@ -200,6 +221,10 @@ function getranges(_, exists, db, more)
 end
 
 function fast_forward()
+    if options.fast_forward and options.fast_forward == true then
+        speed_timer = nil
+        mp.set_property("speed", 1)
+    end
     local last_speed = mp.get_property_number("speed")
     local new_speed = math.min(last_speed + options.fast_forward_increase, options.fast_forward_cap)
     if new_speed <= last_speed then return end
@@ -254,6 +279,7 @@ function skip_ads(name, pos)
             end
             if options.fast_forward ~= false then
                 options.fast_forward = uuid
+                if speed_timer ~= nil then speed_timer:kill() end
                 speed_timer = mp.add_periodic_timer(1, fast_forward)
             end
             return
@@ -278,6 +304,7 @@ function skip_ads(name, pos)
     if options.fast_forward and options.fast_forward ~= true then
         options.fast_forward = true
         speed_timer:kill()
+        speed_timer = nil
         mp.set_property("speed", 1)
     end
 end
@@ -323,6 +350,7 @@ function file_loaded()
     ranges = {}
     segment = {a = 0, b = 0, progress = 0, first = true}
     last_skip = {uuid = "", dir = nil}
+    chapter_cache = {}
     local video_path = mp.get_property("path")
     local youtube_id1 = string.match(video_path, "https?://youtu%.be/([%w-_]+).*")
     local youtube_id2 = string.match(video_path, "https?://w?w?w?%.?youtube%.com/v/([%w-_]+).*")
@@ -405,15 +433,30 @@ function set_segment()
     segment.first = false
 end
 
-function submit_segment()
+function select_category(selected)
+    for category in string.gmatch(options.categories, "([^,]+)") do
+        mp.remove_key_binding("select_category_"..category)
+        mp.remove_key_binding("kp_select_category_"..category)
+    end
+    submit_segment(selected)
+end
+
+function submit_segment(category)
     if not youtube_id then return end
     local start_time = math.min(segment.a, segment.b)
     local end_time = math.max(segment.a, segment.b)
     if end_time - start_time == 0 or end_time == 0 then
         mp.osd_message("[sponsorblock] empty segment, not submitting")
     elseif segment.progress <= 1 then
-        mp.osd_message(string.format("[sponsorblock] press Shift+G again to confirm: %.2d:%.2d:%.2d to %.2d:%.2d:%.2d", math.floor(start_time/(60*60)), math.floor(start_time/60%60), math.floor(start_time%60), math.floor(end_time/(60*60)), math.floor(end_time/60%60), math.floor(end_time%60)), 5)
         segment.progress = segment.progress + 2
+        local category_list = ""
+        for category_id, category in pairs(all_categories) do
+            local category_title = (category:gsub("^%l", string.upper):gsub("_", " "))
+            category_list = category_list .. category_id .. ": " .. category_title .. "\n"
+            mp.add_forced_key_binding(tostring(category_id), "select_category_"..category, function() select_category(category) end)
+            mp.add_forced_key_binding("KP"..tostring(category_id), "kp_select_category_"..category, function() select_category(category) end)
+        end
+        mp.osd_message(string.format("[sponsorblock] press a number to select category for segment: %.2d:%.2d:%.2d to %.2d:%.2d:%.2d\n\n" .. category_list .. "\nyou can press Shift+G again for default (Sponsor) or hide this message with g", math.floor(start_time/(60*60)), math.floor(start_time/60%60), math.floor(start_time%60), math.floor(end_time/(60*60)), math.floor(end_time/60%60), math.floor(end_time%60)), 30)
     else
         mp.osd_message("[sponsorblock] submitting segment...", 30)
         local submit
@@ -427,7 +470,8 @@ function submit_segment()
             tostring(start_time),
             tostring(end_time),
             uid_path,
-            options.user_id
+            options.user_id,
+            category or "sponsor"
         }
         if not legacy then
             submit = mp.command_native({name = "subprocess", capture_stdout = true, playback_only = false, args = args})

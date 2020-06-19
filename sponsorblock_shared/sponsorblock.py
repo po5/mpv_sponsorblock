@@ -26,10 +26,10 @@ urllib.request.install_opener(opener)
 if sys.argv[1] == "ranges" and (not sys.argv[2] or not os.path.isfile(sys.argv[2])):
     times = []
     try:
-        response = urllib.request.urlopen(sys.argv[3] + "/api/getVideoSponsorTimes?videoID=" + sys.argv[4])
-        data = json.load(response)
-        for i, time in enumerate(data["sponsorTimes"]):
-            times.append(str(time[0]) + "," + str(time[1]) + "," + data["UUIDs"][i])
+        response = urllib.request.urlopen(sys.argv[3] + "/api/skipSegments?videoID=" + sys.argv[4] + "&" + urllib.parse.urlencode([("categories", json.dumps(sys.argv[5].split(",")))]))
+        segments = json.load(response)
+        for segment in segments:
+            times.append(str(segment["segment"][0]) + "," + str(segment["segment"][1]) + "," + segment["UUID"] + "," + segment["category"])
         print(":".join(times))
     except (TimeoutError, urllib.error.URLError) as e:
         print("error")
@@ -42,32 +42,33 @@ elif sys.argv[1] == "ranges":
     conn = sqlite3.connect(sys.argv[2])
     conn.row_factory = sqlite3.Row
     c = conn.cursor()
-    c.execute("SELECT startTime, endTime, votes, UUID FROM sponsorTimes WHERE videoID = ? AND shadowHidden = 0 AND votes > -1 AND category = 'sponsor'", (sys.argv[4],))
-    times = []
-    sponsors = c.fetchall()
-    best = list(sponsors)
-    dealtwith = []
-    similar = []
-    for sponsor_a in sponsors:
-        for sponsor_b in sponsors:
-            if sponsor_a is not sponsor_b and sponsor_a["startTime"] >= sponsor_b["startTime"] and sponsor_a["startTime"] <= sponsor_b["endTime"]:
-                similar.append([sponsor_a, sponsor_b])
-                if sponsor_a in best:
-                    best.remove(sponsor_a)
-                if sponsor_b in best:
-                    best.remove(sponsor_b)
-    for sponsors_a in similar:
-        if sponsors_a in dealtwith:
-            continue
-        group = set(sponsors_a)
-        for sponsors_b in similar:
-            if sponsors_b[0] in group or sponsors_b[1] in group:
-                group.add(sponsors_b[0])
-                group.add(sponsors_b[1])
-                dealtwith.append(sponsors_b)
-        best.append(max(group, key=lambda x:x["votes"]))
-    for time in best:
-        times.append(str(time["startTime"]) + "," + str(time["endTime"]) + "," + time["UUID"])
+    for category in sys.argv[5].split(","):
+        c.execute("SELECT startTime, endTime, votes, UUID, category FROM sponsorTimes WHERE videoID = ? AND shadowHidden = 0 AND votes > -1 AND category = ?", (sys.argv[4], category))
+        times = []
+        sponsors = c.fetchall()
+        best = list(sponsors)
+        dealtwith = []
+        similar = []
+        for sponsor_a in sponsors:
+            for sponsor_b in sponsors:
+                if sponsor_a is not sponsor_b and sponsor_a["startTime"] >= sponsor_b["startTime"] and sponsor_a["startTime"] <= sponsor_b["endTime"]:
+                    similar.append([sponsor_a, sponsor_b])
+                    if sponsor_a in best:
+                        best.remove(sponsor_a)
+                    if sponsor_b in best:
+                        best.remove(sponsor_b)
+        for sponsors_a in similar:
+            if sponsors_a in dealtwith:
+                continue
+            group = set(sponsors_a)
+            for sponsors_b in similar:
+                if sponsors_b[0] in group or sponsors_b[1] in group:
+                    group.add(sponsors_b[0])
+                    group.add(sponsors_b[1])
+                    dealtwith.append(sponsors_b)
+            best.append(max(group, key=lambda x:x["votes"]))
+        for time in best:
+            times.append(str(time["startTime"]) + "," + str(time["endTime"]) + "," + time["UUID"] + "," + time["category"])
     print(":".join(times))
 elif sys.argv[1] == "update":
     try:
@@ -87,7 +88,8 @@ elif sys.argv[1] == "update":
         exit(1)
 elif sys.argv[1] == "submit":
     try:
-        response = urllib.request.urlopen(sys.argv[3] + "/api/postVideoSponsorTimes?videoID=" + sys.argv[4] + "&startTime=" + sys.argv[5] + "&endTime=" + sys.argv[6] + "&userID=" + uid)
+        req = urllib.request.Request(sys.argv[3] + "/api/skipSegments", data=json.dumps({'videoID': sys.argv[4], 'segments': [{'segment': [float(sys.argv[5]), float(sys.argv[6])], 'category': sys.argv[9]}], 'userID': uid}).encode(), headers={'Content-Type': 'application/json'})
+        response = urllib.request.urlopen(req)
         print("success")
     except urllib.error.HTTPError as e:
         print(e.code)
