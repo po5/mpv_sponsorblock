@@ -88,7 +88,7 @@ elif sys.argv[1] == "update":
         exit(1)
 elif sys.argv[1] == "submit":
     try:
-        req = urllib.request.Request(sys.argv[3] + "/api/skipSegments", data=json.dumps({'videoID': sys.argv[4], 'segments': [{'segment': [float(sys.argv[5]), float(sys.argv[6])], 'category': sys.argv[9]}], 'userID': uid}).encode(), headers={'Content-Type': 'application/json'})
+        req = urllib.request.Request(sys.argv[3] + "/api/skipSegments", data=json.dumps({"videoID": sys.argv[4], "segments": [{"segment": [float(sys.argv[5]), float(sys.argv[6])], "category": sys.argv[9]}], "userID": uid}).encode(), headers={"Content-Type": "application/json"})
         response = urllib.request.urlopen(req)
         print("success")
     except urllib.error.HTTPError as e:

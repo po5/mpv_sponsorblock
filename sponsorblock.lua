@@ -36,7 +36,7 @@ local options = {
     report_views = true,
 
     -- Auto upvote skipped sponsors
-    auto_upvote = true,
+    auto_upvote = false,
 
     -- Use sponsor times from server if they're more up to date than our local database
     server_fallback = true,
