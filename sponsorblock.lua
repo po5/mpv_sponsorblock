@@ -82,11 +82,14 @@ if legacy then
 end
 
 local utils = require "mp.utils"
-scripts_dir = mp.find_config_file("scripts")
+local scripts_dir = mp.find_config_file("scripts")
+local home_dir = os.getenv("HOME")
+local data_dir = os.getenv("XDG_DATA_HOME") or home_dir and utils.join_path(home_dir, ".local/share") or scripts_dir
+local cache_dir = os.getenv("XDG_CACHE_HOME") or home_dir and utils.join_path(home_dir, ".cache") or scripts_dir
 
 local sponsorblock = utils.join_path(scripts_dir, "sponsorblock_shared/sponsorblock.py")
-local uid_path = utils.join_path(scripts_dir, "sponsorblock_shared/sponsorblock.txt")
-local database_file = options.local_database and utils.join_path(scripts_dir, "sponsorblock_shared/sponsorblock.db") or ""
+local uid_path = utils.join_path(data_dir, "sponsorblock_shared/sponsorblock.txt")
+local database_file = options.local_database and utils.join_path(cache_dir, "sponsorblock_shared/sponsorblock.db") or ""
 local youtube_id = nil
 local ranges = {}
 local init = false
