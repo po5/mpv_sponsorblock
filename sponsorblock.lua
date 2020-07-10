@@ -142,6 +142,32 @@ function create_chapter(chapter_title, chapter_time)
     mp.set_property_native("chapter-list", chapters)
 end
 
+function process(uuid, t, new_ranges)
+    start_time = tonumber(string.match(t, "[^,]+"))
+    end_time = tonumber(string.sub(string.match(t, ",[^,]+"), 2))
+    for o_uuid, o_t in pairs(ranges) do
+        if (start_time >= o_t.start_time and start_time <= o_t.end_time) or (o_t.start_time >= start_time and o_t.start_time <= end_time) then
+            new_ranges[o_uuid] = o_t
+            return
+        end
+    end
+    category = string.match(t, "[^,]+$")
+    if categories[category] and end_time - start_time >= options.min_duration then
+        new_ranges[uuid] = {
+            start_time = start_time,
+            end_time = end_time,
+            category = category,
+            skipped = false
+        }
+    end
+    if options.make_chapters and not chapter_cache[uuid] then
+        chapter_cache[uuid] = true
+        local category_title = (category:gsub("^%l", string.upper):gsub("_", " "))
+        create_chapter(category_title .. " segment start (" .. string.sub(uuid, 1, 6) .. ")", start_time)
+        create_chapter(category_title .. " segment end (" .. string.sub(uuid, 1, 6) .. ")", end_time)
+    end
+end
+
 function getranges(_, exists, db, more)
     if type(exists) == "table" and exists["status"] == "1" then
         if options.server_fallback then
@@ -187,31 +213,8 @@ function getranges(_, exists, db, more)
         if ranges[uuid] then
             new_ranges[uuid] = ranges[uuid]
         else
-            start_time = tonumber(string.match(t, "[^,]+"))
-            end_time = tonumber(string.sub(string.match(t, ",[^,]+"), 2))
-            for o_uuid, o_t in pairs(ranges) do
-                if (start_time >= o_t.start_time and start_time <= o_t.end_time) or (o_t.start_time >= start_time and o_t.start_time <= end_time) then
-                    new_ranges[o_uuid] = o_t
-                    goto continue
-                end
-            end
-            category = string.match(t, "[^,]+$")
-            if categories[category] and end_time - start_time >= options.min_duration then
-                new_ranges[uuid] = {
-                    start_time = start_time,
-                    end_time = end_time,
-                    category = category,
-                    skipped = false
-                }
-            end
-            if options.make_chapters and not chapter_cache[uuid] then
-                chapter_cache[uuid] = true
-                local category_title = (category:gsub("^%l", string.upper):gsub("_", " "))
-                create_chapter(category_title .. " segment start (" .. string.sub(uuid, 1, 6) .. ")", start_time)
-                create_chapter(category_title .. " segment end (" .. string.sub(uuid, 1, 6) .. ")", end_time)
-            end
+            process(uuid, t, new_ranges)
         end
-        ::continue::
         r_count = r_count + 1
     end
     local c_count = t_count(ranges)
