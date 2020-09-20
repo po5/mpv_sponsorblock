@@ -17,3 +17,5 @@ Default key bindings:
 - H (shift+h) to downvote the last segment
 
 These can be remapped with the following script bindings: `sponsorblock/set_segment`, `sponsorblock/submit_segment`, `sponsorblock/upvote_segment`, `sponsorblock/downvote_segment`
+
+Add lines in the following format to your input.conf: `alt+g script-binding sponsorblock/set_segment`
