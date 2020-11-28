@@ -430,10 +430,12 @@ function file_loaded()
     end
     if not options.local_database or (not options.auto_update and file_exists(database_file)) then return end
 
-    local db_info = utils.file_info(database_file)
-    local cur_time = os.time(os.date("*t"))
-    local upd_interval = parse_update_interval()
-    if upd_interval == nil or os.difftime(cur_time, db_info.mtime) < upd_interval then return end
+    if file_exists(database_file) then
+        local db_info = utils.file_info(database_file)
+        local cur_time = os.time(os.date("*t"))
+        local upd_interval = parse_update_interval()
+        if upd_interval == nil or os.difftime(cur_time, db_info.mtime) < upd_interval then return end
+    end
 
     update()
 end
