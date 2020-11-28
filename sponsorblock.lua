@@ -26,6 +26,10 @@ local options = {
     -- Update database on first run, does nothing if local_database is false
     auto_update = true,
 
+    -- How long to wait between local database updates
+    -- Format: "X[d,h,m]", leave blank to update on every mpv run
+    auto_update_interval = "6h",
+
     -- User ID used to submit sponsored segments, leave blank for random
     user_id = "",
 
@@ -121,6 +125,26 @@ function time_sort(a, b)
         return string.match(a.title, "segment end")
     end
     return a.time < b.time
+end
+
+function parse_update_interval()
+    local s = options.auto_update_interval
+    if s == "" then return 0 end -- Interval Disabled
+
+    local num, mod = s:match "^(%d+)([hdm])$"
+
+    if num == nil or mod == nil then
+        mp.osd_message("[sponsorblock] auto_update_interval " .. s .. " is invalid", 5)
+        return nil
+    end
+
+    local time_table = {
+        m = 60,
+        h = 60 * 60,
+        d = 60 * 60 * 24,
+    }
+
+    return num * time_table[mod]
 end
 
 function clean_chapters()
@@ -405,6 +429,12 @@ function file_loaded()
         end
     end
     if not options.local_database or (not options.auto_update and file_exists(database_file)) then return end
+
+    local db_info = utils.file_info(database_file)
+    local cur_time = os.time(os.date("*t"))
+    local upd_interval = parse_update_interval()
+    if upd_interval == nil or os.difftime(cur_time, db_info.mtime) < upd_interval then return end
+
     update()
 end
 
