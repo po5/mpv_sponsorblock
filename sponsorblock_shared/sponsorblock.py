@@ -30,7 +30,7 @@ if sys.argv[1] == "ranges" and (not sys.argv[2] or not os.path.isfile(sys.argv[2
         sha = hashlib.sha256(sys.argv[4].encode()).hexdigest()[:int(sys.argv[6])]
     times = []
     try:
-        response = urllib.request.urlopen(sys.argv[3] + "/api/skipSegments" + ("/" + sha if sha else "") + "?videoID=" + sys.argv[4] + "&" + urllib.parse.urlencode([("categories", json.dumps(sys.argv[5].split(",")))]))
+        response = urllib.request.urlopen(sys.argv[3] + "/api/skipSegments" + ("/" + sha + "?" if sha else "?videoID=" + sys.argv[4] + "&") + urllib.parse.urlencode([("categories", json.dumps(sys.argv[5].split(",")))]))
         segments = json.load(response)
         for segment in segments:
             if sha and sys.argv[4] != segment["videoID"]:
