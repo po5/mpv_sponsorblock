@@ -69,6 +69,9 @@ local options = {
     -- Playback speed cap
     fast_forward_cap = 2,
 
+    -- Length of the sha256 prefix (3-32) when querying server, 0 to disable
+    sha256_length = 4,
+
     -- Pattern for video id in local files, ignored if blank
     -- Recommended value for base youtube-dl is "-([%w-_]+)%.[mw][kpe][v4b]m?$"
     local_pattern = "",
@@ -220,7 +223,8 @@ function getranges(_, exists, db, more)
         db,
         options.server_address,
         youtube_id,
-        options.categories
+        options.categories,
+        tostring(options.sha256_length)
     }
     if not legacy then
         sponsors = mp.command_native({name = "subprocess", capture_stdout = true, playback_only = false, args = args})

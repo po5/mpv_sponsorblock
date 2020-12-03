@@ -1,5 +1,6 @@
 import urllib.request
 import urllib.parse
+import hashlib
 import sqlite3
 import random
 import string
@@ -24,12 +25,21 @@ opener.addheaders = [("User-Agent", "mpv_sponsorblock/1.0 (https://github.com/po
 urllib.request.install_opener(opener)
 
 if sys.argv[1] == "ranges" and (not sys.argv[2] or not os.path.isfile(sys.argv[2])):
+    sha = None
+    if 3 <= int(sys.argv[6]) <= 32:
+        sha = hashlib.sha256(sys.argv[4].encode()).hexdigest()[:int(sys.argv[6])]
     times = []
     try:
-        response = urllib.request.urlopen(sys.argv[3] + "/api/skipSegments?videoID=" + sys.argv[4] + "&" + urllib.parse.urlencode([("categories", json.dumps(sys.argv[5].split(",")))]))
+        response = urllib.request.urlopen(sys.argv[3] + "/api/skipSegments" + ("/" + sha if sha else "") + "?videoID=" + sys.argv[4] + "&" + urllib.parse.urlencode([("categories", json.dumps(sys.argv[5].split(",")))]))
         segments = json.load(response)
         for segment in segments:
-            times.append(str(segment["segment"][0]) + "," + str(segment["segment"][1]) + "," + segment["UUID"] + "," + segment["category"])
+            if sha and sys.argv[4] != segment["videoID"]:
+                continue
+            if sha:
+                for s in segment["segments"]:
+                    times.append(str(s["segment"][0]) + "," + str(s["segment"][1]) + "," + s["UUID"] + "," + s["category"])
+            else:
+                times.append(str(segment["segment"][0]) + "," + str(segment["segment"][1]) + "," + segment["UUID"] + "," + segment["category"])
         print(":".join(times))
     except (TimeoutError, urllib.error.URLError) as e:
         print("error")
