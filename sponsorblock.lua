@@ -296,10 +296,10 @@ function skip_ads(name, pos)
         if (options.fast_forward == uuid or not options.skip_once or not t.skipped) and t.start_time <= pos and t.end_time > pos then
             if options.fast_forward == uuid then return end
             if options.fast_forward == false then
-                mp.osd_message("[sponsorblock] sponsor skipped")
+                mp.osd_message("[sponsorblock] " .. t.category .. " skipped")
                 mp.set_property("time-pos", t.end_time)
             else
-                mp.osd_message("[sponsorblock] skipping sponsor")
+                mp.osd_message("[sponsorblock] skipping " .. t.category)
             end
             t.skipped = true
             last_skip = {uuid = uuid, dir = nil}
