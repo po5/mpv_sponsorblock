@@ -406,12 +406,16 @@ function file_loaded()
     local youtube_id2 = string.match(video_path, "https?://w?w?w?%.?youtube%.com/v/([%w-_]+).*")
     local youtube_id3 = string.match(video_path, "/watch.*[?&]v=([%w-_]+).*")
     local youtube_id4 = string.match(video_path, "/embed/([%w-_]+).*")
-    local youtube_id5 = string.match(video_referer, "/watch.*[?&]v=([%w-_]+).*")
+    local youtube_idr1 = string.match(video_referer, "https?://youtu%.be/([%w-_]+).*")
+    local youtube_idr2 = string.match(video_referer, "https?://w?w?w?%.?youtube%.com/v/([%w-_]+).*")
+    local youtube_idr3 = string.match(video_referer, "/watch.*[?&]v=([%w-_]+).*")
+    local youtube_idr4 = string.match(video_referer, "/embed/([%w-_]+).*")
     local local_pattern = nil
     if options.local_pattern ~= "" then
         local_pattern = string.match(video_path, options.local_pattern)
     end
-    youtube_id = youtube_id1 or youtube_id2 or youtube_id3 or youtube_id4 or youtube_id5 or local_pattern
+    youtube_id = youtube_id1 or youtube_id2 or youtube_id3 or youtube_id4 or 
+                 youtube_idr1 or youtube_idr2 or youtube_idr3 or youtube_idr4 or local_pattern
     if not youtube_id or string.len(youtube_id) < 11 or (local_pattern and string.len(youtube_id) ~= 11) then return end
     youtube_id = string.sub(youtube_id, 1, 11)
     mp.msg.info("Found YouTube ID: " .. youtube_id)
