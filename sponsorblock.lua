@@ -383,9 +383,9 @@ function file_loaded()
     segment = {a = 0, b = 0, progress = 0, first = true}
     last_skip = {uuid = "", dir = nil}
     chapter_cache = {}
-    local video_path = mp.get_property("path") or ""
+    local video_path = mp.get_property("path", "")
     mp.msg.debug("Path: " .. video_path)
-    local video_referer = string.match(mp.get_property("http-header-fields") or "", "Referer:([^,]+)")
+    local video_referer = string.match(mp.get_property("http-header-fields", ""), "Referer:([^,]+)") or ""
     mp.msg.debug("Referer: " .. video_referer)
 
     local urls = {
