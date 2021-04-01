@@ -231,6 +231,7 @@ function getranges(_, exists, db, more)
     else
         sponsors = utils.subprocess({args = args})
     end
+    mp.msg.debug("Got: " .. string.gsub(sponsors.stdout, "[\n\r]", ""))
     if not string.match(sponsors.stdout, "^%s*(.*%S)") then return end
     if string.match(sponsors.stdout, "error") then return getranges(true, true) end
     local new_ranges = {}
@@ -281,10 +282,10 @@ function skip_ads(name, pos)
         if (options.fast_forward == uuid or not options.skip_once or not t.skipped) and t.start_time <= pos and t.end_time > pos then
             if options.fast_forward == uuid then return end
             if options.fast_forward == false then
-                mp.osd_message("[sponsorblock] sponsor skipped")
+                mp.osd_message("[sponsorblock] " .. t.category .. " skipped")
                 mp.set_property("time-pos", t.end_time)
             else
-                mp.osd_message("[sponsorblock] skipping sponsor")
+                mp.osd_message("[sponsorblock] skipping " .. t.category)
             end
             t.skipped = true
             last_skip = {uuid = uuid, dir = nil}
@@ -382,18 +383,26 @@ function file_loaded()
     segment = {a = 0, b = 0, progress = 0, first = true}
     last_skip = {uuid = "", dir = nil}
     chapter_cache = {}
-    local video_path = mp.get_property("path")
-    local youtube_id1 = string.match(video_path, "https?://youtu%.be/([%w-_]+).*")
-    local youtube_id2 = string.match(video_path, "https?://w?w?w?%.?youtube%.com/v/([%w-_]+).*")
-    local youtube_id3 = string.match(video_path, "/watch.*[?&]v=([%w-_]+).*")
-    local youtube_id4 = string.match(video_path, "/embed/([%w-_]+).*")
-    local local_pattern = nil
-    if options.local_pattern ~= "" then
-        local_pattern = string.match(video_path, options.local_pattern)
+    local video_path = mp.get_property("path", "")
+    mp.msg.debug("Path: " .. video_path)
+    local video_referer = string.match(mp.get_property("http-header-fields", ""), "Referer:([^,]+)") or ""
+    mp.msg.debug("Referer: " .. video_referer)
+
+    local urls = {
+        "https?://youtu%.be/([%w-_]+).*",
+        "https?://w?w?w?%.?youtube%.com/v/([%w-_]+).*",
+        "/watch.*[?&]v=([%w-_]+).*",
+        "/embed/([%w-_]+).*"
+    }
+    youtube_id = nil
+    for i,url in ipairs(urls) do 
+        youtube_id = youtube_id or string.match(video_path, url) or string.match(video_referer, url)
     end
-    youtube_id = youtube_id1 or youtube_id2 or youtube_id3 or youtube_id4 or local_pattern
+    youtube_id = youtube_id or string.match(video_path, options.local_pattern)
+    
     if not youtube_id or string.len(youtube_id) < 11 or (local_pattern and string.len(youtube_id) ~= 11) then return end
     youtube_id = string.sub(youtube_id, 1, 11)
+    mp.msg.debug("Found YouTube ID: " .. youtube_id)
     init = true
     if not options.local_database then
         getranges(true, true)

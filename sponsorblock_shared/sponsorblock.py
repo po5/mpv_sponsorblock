@@ -86,16 +86,16 @@ elif sys.argv[1] == "update":
         os.replace(sys.argv[2] + ".tmp", sys.argv[2])
     except PermissionError:
         print("database update failed, file currently in use", file=sys.stderr)
-        exit(1)
+        sys.exit(1)
     except ConnectionResetError:
         print("database update failed, connection reset", file=sys.stderr)
-        exit(1)
+        sys.exit(1)
     except TimeoutError:
         print("database update failed, timed out", file=sys.stderr)
-        exit(1)
+        sys.exit(1)
     except urllib.error.URLError:
         print("database update failed", file=sys.stderr)
-        exit(1)
+        sys.exit(1)
 elif sys.argv[1] == "submit":
     try:
         req = urllib.request.Request(sys.argv[3] + "/api/skipSegments", data=json.dumps({"videoID": sys.argv[4], "segments": [{"segment": [float(sys.argv[5]), float(sys.argv[6])], "category": sys.argv[9]}], "userID": uid}).encode(), headers={"Content-Type": "application/json"})
