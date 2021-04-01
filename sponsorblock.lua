@@ -195,20 +195,6 @@ function process(uuid, t, new_ranges)
     end
 end
 
--- https://stackoverflow.com/questions/9168058/how-to-dump-a-table-to-console
-function dump(o)
-   if type(o) == 'table' then
-      local s = '{ '
-      for k,v in pairs(o) do
-         if type(k) ~= 'number' then k = '"'..k..'"' end
-         s = s .. '['..k..'] = ' .. dump(v) .. ','
-      end
-      return s .. '} '
-   else
-      return tostring(o)
-   end
-end
-
 function getranges(_, exists, db, more)
     if type(exists) == "table" and exists["status"] == "1" then
         if options.server_fallback then
@@ -245,7 +231,7 @@ function getranges(_, exists, db, more)
     else
         sponsors = utils.subprocess({args = args})
     end
-    mp.msg.debug("Got: " .. dump(sponsors))
+    mp.msg.debug("Got: " .. string.gsub(sponsors.stdout, "[\n\r]", ""))
     if not string.match(sponsors.stdout, "^%s*(.*%S)") then return end
     if string.match(sponsors.stdout, "error") then return getranges(true, true) end
     local new_ranges = {}
@@ -398,9 +384,9 @@ function file_loaded()
     last_skip = {uuid = "", dir = nil}
     chapter_cache = {}
     local video_path = mp.get_property("path")
-    mp.msg.debug("Path: " .. video_path)
+    mp.msg.debug("Path: " .. video_path or "")
     local video_referer = string.match(mp.get_property("http-header-fields"), "Referer:([^,]+)")
-    mp.msg.debug("Referer: " .. video_referer)
+    mp.msg.debug("Referer: " .. video_referer or "")
 
     local urls = {
         "https?://youtu%.be/([%w-_]+).*",
@@ -416,7 +402,7 @@ function file_loaded()
     
     if not youtube_id or string.len(youtube_id) < 11 or (local_pattern and string.len(youtube_id) ~= 11) then return end
     youtube_id = string.sub(youtube_id, 1, 11)
-    mp.msg.info("Found YouTube ID: " .. youtube_id)
+    mp.msg.debug("Found YouTube ID: " .. youtube_id)
     init = true
     if not options.local_database then
         getranges(true, true)
