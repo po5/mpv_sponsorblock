@@ -77,7 +77,10 @@ local options = {
     local_pattern = "",
 
     -- Legacy option, use skip_categories instead
-    skip = true
+    skip = true,
+
+    -- Decide whether or not to show text when sponsoblocks triggers an action
+    osd_text_show = false
 }
 
 mp.options = require "mp.options"
@@ -137,7 +140,8 @@ function parse_update_interval()
     local num, mod = s:match "^(%d+)([hdm])$"
 
     if num == nil or mod == nil then
-        mp.osd_message("[sponsorblock] auto_update_interval " .. s .. " is invalid", 5)
+        local osd_text = osd_show("[sponsorblock] auto_update_interval " .. s .. " is invalid", 5)
+        mp.osd_message(osd_text)
         return nil
     end
 
@@ -148,6 +152,13 @@ function parse_update_interval()
     }
 
     return num * time_table[mod]
+end
+
+function osd_show(text)
+    local s = options.osd_text_show
+    if s == false then return "" end
+
+    return text;
 end
 
 function clean_chapters()
@@ -200,19 +211,22 @@ function getranges(_, exists, db, more)
         if options.server_fallback then
             mp.add_timeout(0, function() getranges(true, true, "") end)
         else
-            return mp.osd_message("[sponsorblock] database update failed, gave up")
+            local osd_text = osd_show("[sponsorblock] database update failed, gave up")
+            return mp.osd_message(osd_text)
         end
     end
     if db ~= "" and db ~= database_file then db = database_file end
     if exists ~= true and not file_exists(db) then
         if not retrying then
-            mp.osd_message("[sponsorblock] database update failed, retrying...")
+            local osd_text = osd_show("[sponsorblock] database update failed, retrying...")
+            mp.osd_message(osd_text)
             retrying = true
         end
         return update()
     end
     if retrying then
-        mp.osd_message("[sponsorblock] database update succeeded")
+        local osd_text = osd_show("[sponsorblock] database update succeeded")
+        mp.osd_message(osd_text)
         retrying = false
     end
     local sponsors
@@ -282,10 +296,12 @@ function skip_ads(name, pos)
         if (options.fast_forward == uuid or not options.skip_once or not t.skipped) and t.start_time <= pos and t.end_time > pos then
             if options.fast_forward == uuid then return end
             if options.fast_forward == false then
-                mp.osd_message("[sponsorblock] " .. t.category .. " skipped")
+                local osd_text = osd_show("[sponsorblock] " .. t.category .. " skipped")
+                mp.osd_message(osd_text)
                 mp.set_property("time-pos", t.end_time)
             else
-                mp.osd_message("[sponsorblock] skipping " .. t.category)
+                local osd_text = osd_show("[sponsorblock] skipping " .. t.category)
+                mp.osd_message(osd_text)
             end
             t.skipped = true
             last_skip = {uuid = uuid, dir = nil}
@@ -342,9 +358,15 @@ function skip_ads(name, pos)
 end
 
 function vote(dir)
-    if last_skip.uuid == "" then return mp.osd_message("[sponsorblock] no sponsors skipped, can't submit vote") end
+    if last_skip.uuid == "" then 
+      local osd_text = osd_show("[sponsorblock] no sponsors skipped, can't submit vote")
+      return mp.osd_message(osd_text)
+    end
     local updown = dir == "1" and "up" or "down"
-    if last_skip.dir == dir then return mp.osd_message("[sponsorblock] " .. updown .. "vote already submitted") end
+    if last_skip.dir == dir then 
+      local osd_text = osd_show("[sponsorblock] " .. updown .. "vote already submitted")
+      return mp.osd_message(osd_text)
+    end
     last_skip.dir = dir
     local args = {
         options.python_path,
@@ -364,7 +386,8 @@ function vote(dir)
     else
         utils.subprocess({args = args})
     end
-    mp.osd_message("[sponsorblock] " .. updown .. "vote submitted")
+    local osd_text = osd_show("[sponsorblock] " .. updown .. "vote submitted")
+    mp.osd_message(osd_text)
 end
 
 function update()
@@ -463,11 +486,13 @@ function set_segment()
     if segment.progress == 1 then
         segment.progress = 0
         segment.b = pos
-        mp.osd_message("[sponsorblock] segment boundary B set, press again for boundary A", 3)
+        local osd_text = osd_show("[sponsorblock] segment boundary B set, press again for boundary A")
+        mp.osd_message(osd_text, 3)
     else
         segment.progress = 1
         segment.a = pos
-        mp.osd_message("[sponsorblock] segment boundary A set, press again for boundary B", 3)
+        local osd_text = osd_show("[sponsorblock] segment boundary A set, press again for boundary B")
+        mp.osd_message(osd_text, 3)
     end
     if options.make_chapters and not segment.first then
         local start_time = math.min(segment.a, segment.b)
@@ -494,7 +519,8 @@ function submit_segment(category)
     local start_time = math.min(segment.a, segment.b)
     local end_time = math.max(segment.a, segment.b)
     if end_time - start_time == 0 or end_time == 0 then
-        mp.osd_message("[sponsorblock] empty segment, not submitting")
+        local osd_text = osd_show("[sponsorblock] empty segment, not submitting")
+        mp.osd_message(osd_text)
     elseif segment.progress <= 1 then
         segment.progress = segment.progress + 2
         local category_list = ""
@@ -504,9 +530,11 @@ function submit_segment(category)
             mp.add_forced_key_binding(tostring(category_id), "select_category_"..category, function() select_category(category) end)
             mp.add_forced_key_binding("KP"..tostring(category_id), "kp_select_category_"..category, function() select_category(category) end)
         end
-        mp.osd_message(string.format("[sponsorblock] press a number to select category for segment: %.2d:%.2d:%.2d to %.2d:%.2d:%.2d\n\n" .. category_list .. "\nyou can press Shift+G again for default (Sponsor) or hide this message with g", math.floor(start_time/(60*60)), math.floor(start_time/60%60), math.floor(start_time%60), math.floor(end_time/(60*60)), math.floor(end_time/60%60), math.floor(end_time%60)), 30)
+        local osd_text = osd_show(string.format("[sponsorblock] press a number to select category for segment: %.2d:%.2d:%.2d to %.2d:%.2d:%.2d\n\n" .. category_list .. "\nyou can press Shift+G again for default (Sponsor) or hide this message with g", math.floor(start_time/(60*60)), math.floor(start_time/60%60), math.floor(start_time%60), math.floor(end_time/(60*60)), math.floor(end_time/60%60), math.floor(end_time%60)))
+        mp.osd_message(osd_text, 30)
     else
-        mp.osd_message("[sponsorblock] submitting segment...", 30)
+        local osd_text = osd_show("[sponsorblock] submitting segment...")
+        mp.osd_message(osd_text, 30)
         local submit
         local args = {
             options.python_path,
@@ -528,26 +556,33 @@ function submit_segment(category)
         end
         if string.match(submit.stdout, "success") then
             segment = {a = 0, b = 0, progress = 0, first = true}
-            mp.osd_message("[sponsorblock] segment submitted")
+            local osd_text = osd_show("[sponsorblock] segment submitted")
+            mp.osd_message(osd_text)
             if options.make_chapters then
                 clean_chapters()
                 create_chapter("Submitted segment start", start_time)
                 create_chapter("Submitted segment end", end_time)
             end
         elseif string.match(submit.stdout, "error") then
-            mp.osd_message("[sponsorblock] segment submission failed, server may be down. try again", 5)
+          local osd_text = osd_show("[sponsorblock] segment submission failed, server may be down. try again", 5)
+          mp.ost_message(osd_text)
         elseif string.match(submit.stdout, "502") then
-            mp.osd_message("[sponsorblock] segment submission failed, server is down. try again", 5)
+          local osd_text = osd_show("[sponsorblock] segment submission failed, server is down. try again", 5)
+          mp.ost_message(osd_text)
         elseif string.match(submit.stdout, "400") then
-            mp.osd_message("[sponsorblock] segment submission failed, impossible inputs", 5)
+          local osd_text = osd_show("[sponsorblock] segment submission failed, impossible inputs", 5)
+          mp.ost_message(osd_text)
             segment = {a = 0, b = 0, progress = 0, first = true}
         elseif string.match(submit.stdout, "429") then
-            mp.osd_message("[sponsorblock] segment submission failed, rate limited. try again", 5)
+          local osd_text = osd_show("[sponsorblock] segment submission failed, rate limited. try again", 5)
+          mp.osd_message(osd_text)
         elseif string.match(submit.stdout, "409") then
-            mp.osd_message("[sponsorblock] segment already submitted", 3)
+          local osd_text = osd_show("[sponsorblock] segment already submitted", 3)
+          mp.osd_message(osd_text)
             segment = {a = 0, b = 0, progress = 0, first = true}
         else
-            mp.osd_message("[sponsorblock] segment submission failed", 5)
+          local osd_text = osd_show("[sponsorblock] segment submission failed", 5)
+          mp.osd_message(osd_text)
         end
     end
 end
