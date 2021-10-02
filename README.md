@@ -5,7 +5,7 @@ A fully-featured port of [SponsorBlock](https://github.com/ajayyy/SponsorBlock) 
 - Python 3
 
 ## Installation
-Move this repo's contents into your mpv `scripts` folder.
+Move this repo's folder into your mpv `scripts` folder.
 
 ## Usage
 Play a YouTube video, sponsors will be skipped automatically.
