@@ -21,7 +21,7 @@ local options = {
 
     -- Note that sponsored segments may ocasionally be inaccurate if this is turned off
     -- see https://blog.ajay.app/voting-and-pseudo-randomness-or-sponsorblock-or-youtube-sponsorship-segment-blocker
-    local_database = true,
+    local_database = false,
 
     -- Update database on first run, does nothing if local_database is false
     auto_update = true,
@@ -84,9 +84,12 @@ mp.options = require "mp.options"
 mp.options.read_options(options, "sponsorblock")
 
 local legacy = mp.command_native_async == nil
+--[[
 if legacy then
     options.local_database = false
 end
+--]]
+options.local_database = false
 
 local utils = require "mp.utils"
 scripts_dir = mp.find_config_file("scripts")
