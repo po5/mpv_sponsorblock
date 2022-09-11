@@ -395,8 +395,9 @@ function file_loaded()
         "/embed/([%w-_]+).*"
     }
     youtube_id = nil
-    for i,url in ipairs(urls) do 
+    for i, url in ipairs(urls) do 
         youtube_id = youtube_id or string.match(video_path, url) or string.match(video_referer, url)
+        if youtube_id then break end
     end
     youtube_id = youtube_id or string.match(video_path, options.local_pattern)
     
