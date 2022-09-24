@@ -11,7 +11,7 @@ local options = {
     python_path = ON_WINDOWS and "python" or "python3",
 
     -- Categories to fetch
-    categories = "sponsor,intro,outro,interaction,selfpromo",
+    categories = "sponsor,intro,outro,interaction,selfpromo,filler",
 
     -- Categories to skip automatically
     skip_categories = "sponsor",
@@ -108,7 +108,7 @@ local fade_timer = nil
 local fade_dir = nil
 local volume_before = mp.get_property_number("volume")
 local categories = {}
-local all_categories = {"sponsor", "intro", "outro", "interaction", "selfpromo", "preview", "music_offtopic"}
+local all_categories = {"sponsor", "intro", "outro", "interaction", "selfpromo", "preview", "music_offtopic", "filler"}
 local chapter_cache = {}
 
 for category in string.gmatch(options.skip_categories, "([^,]+)") do
