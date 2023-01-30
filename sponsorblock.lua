@@ -392,6 +392,7 @@ function file_loaded()
     mp.msg.debug("Referer: " .. video_referer)
 
     local urls = {
+        "ytdl://([%w-_]+).*",
         "https?://youtu%.be/([%w-_]+).*",
         "https?://w?w?w?%.?youtube%.com/v/([%w-_]+).*",
         "/watch.*[?&]v=([%w-_]+).*",
