@@ -15,6 +15,7 @@ if sys.argv[1] in ["submit", "stats", "username"]:
                 uid = f.read()
         else:
             uid = "".join(random.choices(string.ascii_letters + string.digits, k=36))
+            os.makedirs(os.path.dirname(sys.argv[7]), exist_ok=True)
             with open(sys.argv[7], "w") as f:
                 f.write(uid)
     else:
@@ -82,6 +83,7 @@ elif sys.argv[1] == "ranges":
     print(":".join(times))
 elif sys.argv[1] == "update":
     try:
+        os.makedirs(os.path.dirname(sys.argv[2]), exist_ok=True)
         urllib.request.urlretrieve(sys.argv[3] + "/database.db", sys.argv[2] + ".tmp")
         os.replace(sys.argv[2] + ".tmp", sys.argv[2])
     except PermissionError:
