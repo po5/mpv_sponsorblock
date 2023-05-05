@@ -92,7 +92,7 @@ end
 options.local_database = false
 
 local utils = require "mp.utils"
-scripts_dir = mp.find_config_file("scripts")
+scripts_dir = mp.get_script_directory()
 
 local sponsorblock = utils.join_path(scripts_dir, "sponsorblock_shared/sponsorblock.py")
 local uid_path = utils.join_path(scripts_dir, "sponsorblock_shared/sponsorblock.txt")
