@@ -5,14 +5,18 @@ A fully-featured port of [SponsorBlock](https://github.com/ajayyy/SponsorBlock) 
 - Python 3
 
 ## Installation
-Move `sponsorblock.lua` and `sponsorblock_shared` into your mpv `scripts` folder.
+Move `sponsorblock.lua` and `sponsorblock_shared` into your mpv `scripts` folder under a `sponsorblock` directory:
 ```
 mpv/scripts/
-├── sponsorblock.lua
-└── sponsorblock_shared
+├── sponsorblock/
     ├── main.lua
-    └── sponsorblock.py
+    ├── sponsorblock.lua
+    └── sponsorblock_shared
+        ├── main.lua
+        └── sponsorblock.py
 ```
+
+The easiest way is to download the [ZIP file](https://github.com/po5/mpv_sponsorblock/archive/refs/heads/master.zip) and unpack it into the correct location.
 
 ## Usage
 Play a YouTube video, sponsors will be skipped automatically.
