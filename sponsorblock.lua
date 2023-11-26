@@ -108,7 +108,7 @@ local fade_timer = nil
 local fade_dir = nil
 local volume_before = mp.get_property_number("volume")
 local categories = {}
-local all_categories = {"sponsor", "intro", "outro", "interaction", "selfpromo", "preview", "music_offtopic", "filler"}
+local all_categories = {"sponsor", "intro", "outro", "interaction", "selfpromo", "preview", "music_offtopic", "filler", "poi_highlight"}
 local chapter_cache = {}
 
 for category in string.gmatch(options.skip_categories, "([^,]+)") do
@@ -182,7 +182,7 @@ function process(uuid, t, new_ranges)
         end
     end
     category = string.match(t, "[^,]+$")
-    if categories[category] and end_time - start_time >= options.min_duration then
+    if categories[category] and (end_time - start_time >= options.min_duration or category == 'poi_highlight') then
         new_ranges[uuid] = {
             start_time = start_time,
             end_time = end_time,
@@ -282,6 +282,11 @@ function skip_ads(name, pos)
     if pos == nil then return end
     local sponsor_ahead = false
     for uuid, t in pairs(ranges) do
+        if t.category == "poi_highlight" and not t.skipped then
+            mp.osd_message("[sponsorblock] skipping to highlight")
+            mp.set_property("time-pos", t.end_time)
+            t.skipped = true
+        end
         if (options.fast_forward == uuid or not options.skip_once or not t.skipped) and t.start_time <= pos and t.end_time > pos then
             if options.fast_forward == uuid then return end
             if options.fast_forward == false then
