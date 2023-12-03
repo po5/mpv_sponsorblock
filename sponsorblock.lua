@@ -103,6 +103,7 @@ local init = false
 local segment = {a = 0, b = 0, progress = 0, first = true}
 local retrying = false
 local last_skip = {uuid = "", dir = nil}
+local poi_end_time = nil
 local speed_timer = nil
 local fade_timer = nil
 local fade_dir = nil
@@ -255,15 +256,19 @@ function getranges(_, exists, db, more)
     end
 end
 
-function fast_forward()
-    if options.fast_forward and options.fast_forward == true then
-        speed_timer = nil
-        mp.set_property("speed", 1)
-    end
-    local last_speed = mp.get_property_number("speed")
-    local new_speed = math.min(last_speed + options.fast_forward_increase, options.fast_forward_cap)
-    if new_speed <= last_speed then return end
-    mp.set_property("speed", new_speed)
+function fast_forward(uuid)
+    options.fast_forward = uuid
+    if speed_timer ~= nil then speed_timer:kill() end
+    speed_timer = mp.add_periodic_timer(1, function()
+        if options.fast_forward and options.fast_forward == true then
+            speed_timer = nil
+            mp.set_property("speed", 1)
+        end
+        local last_speed = mp.get_property_number("speed")
+        local new_speed = math.min(last_speed + options.fast_forward_increase, options.fast_forward_cap)
+        if new_speed <= last_speed then return end
+        mp.set_property("speed", new_speed)
+    end)
 end
 
 function fade_audio(step)
@@ -282,9 +287,15 @@ function skip_ads(name, pos)
     if pos == nil then return end
     local sponsor_ahead = false
     for uuid, t in pairs(ranges) do
-        if t.category == "poi_highlight" and not t.skipped then
-            mp.osd_message("[sponsorblock] skipping to highlight")
-            mp.set_property("time-pos", t.end_time)
+        if t.category == "poi_highlight" and not t.skipped and t.end_time > pos then
+            poi_end_time = t.end_time
+            if options.fast_forward ~= false then
+                mp.osd_message("[sponsorblock] skipping to highlight")
+                fast_forward(uuid)
+            else
+                mp.osd_message("[sponsorblock] skipped to highlight")
+                mp.set_property("time-pos", t.end_time)
+            end
             t.skipped = true
         end
         if (options.fast_forward == uuid or not options.skip_once or not t.skipped) and t.start_time <= pos and t.end_time > pos then
@@ -318,9 +329,7 @@ function skip_ads(name, pos)
                 end
             end
             if options.fast_forward ~= false then
-                options.fast_forward = uuid
-                if speed_timer ~= nil then speed_timer:kill() end
-                speed_timer = mp.add_periodic_timer(1, fast_forward)
+                fast_forward(uuid)
             end
             return
         elseif (not options.skip_once or not t.skipped) and t.start_time <= pos + 1 and t.end_time > pos + 1 then
@@ -341,7 +350,8 @@ function skip_ads(name, pos)
             fade_timer = mp.add_periodic_timer(.1, function() fade_audio(options.audio_fade_step) end)
         end
     end
-    if options.fast_forward and options.fast_forward ~= true then
+    if options.fast_forward and options.fast_forward ~= true and (not poi_end_time or poi_end_time <= pos) then
+        mp.msg.debug("Fast forwarded section has ended")
         options.fast_forward = true
         speed_timer:kill()
         speed_timer = nil
